@@ -11,7 +11,6 @@
 | | Created By | GNI Software — Loan Team |
 | | Version | 0.1 — Draft |
 | **Introduction** | Purpose of this Document | [Purpose & Overview](docs/overview.md) — explain the shared loan operations package for onboarding, implementation and maintenance. |
-| | Scope of this Document | Covers `LOAN_API` public interfaces and selected verified implementation behavior. [Getting Started](docs/guides/getting-started.md) · [Workflows](docs/workflows.md) |
 | **API Specifications** | Procedures & Functions / API Reference | [Public Procedures & Functions](docs/api/loan-api.md) · [Dependencies / Related Tables](docs/reference/dependencies.md) |
 | **Data Model** | Tables | [Data Model & Main Tables](docs/data-model.md) |
 | **Error Handling** | Error Messages & Descriptions | [Error Handling Reference](docs/error-handling.md) · [Review Findings](docs/reference/review-findings.md) |
@@ -19,7 +18,6 @@
 ## Documentation Navigation
 
 - [Introduction and Functional Overview](docs/overview.md)
-- [Developer Onboarding](docs/guides/getting-started.md)
 - [Public API Reference](docs/api/loan-api.md)
 - [Operational Workflows](docs/workflows.md)
 - [Data Model](docs/data-model.md)
