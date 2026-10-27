@@ -6,6 +6,10 @@
 
 It should be treated as **shared business infrastructure**, not as a single screen's controller.
 
+## 2. Functional Areas
+
+The public API is organized into the **same nine functional categories** used in the [API Reference](api/loan-api.md). Counts represent public declarations, including overloads as separate declarations.
+
 | Functional Area | Public Declarations | Description |
 |:--|--:|:--|
 | **Loan operations and controls** | 6 | Loan-operation support functions, caller identification, offer-related utilities, and loan control processing. |
