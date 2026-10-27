@@ -2,7 +2,7 @@
 
 [← Overview](index.md) · [API Reference](api.md) · [Workflows](workflows.md)
 
-This reference includes only meaningful application-level conditions located in active PL/SQL source. Message text is preserved as a literal string or an identifiable literal prefix when runtime identifiers are concatenated. The called error routine `R(...)` is not defined in the supplied package; its exact Oracle error code and propagation contract are not asserted.
+This is a curated register of important source-observed validation and processing conditions, not a complete inventory of Oracle exceptions or runtime errors. Conditions are explained in business terms instead of reproducing incomplete dynamic error prefixes. The called error routine `R(...)` is not defined in the supplied package; its exact Oracle error code and propagation contract are not asserted.
 
 ## Error categories
 
@@ -14,7 +14,7 @@ This reference includes only meaningful application-level conditions located in 
 | [generate_allocated_payment_list](api.md#generate-allocated-payment-list) | Allocated amount exceeds the available balance. | Payment allocation is rejected. | Reconcile the payment amount with the eligible account balance. |
 | [post_int_amount_to_plan](api.md#post-int-amount-to-plan) | Requested account group is not eligible for posting. | The schedule amount is not posted. | Check configured `ACC_TYPE_GROUP` and supported account type. |
 | [post_int_amount_to_plan](api.md#post-int-amount-to-plan) | Tranche selector is neither Y nor N. | The schedule update is rejected. | Pass `Y` for tranche-specific or `N` for standard schedule. |
-| [get_amount_for_pen_calc](api.md#get-amount-for-pen-calc-2) | Overdue interest or supplied overdue balance is negative. | Penalty base cannot be calculated on the invalid amounts. | Correct the overdue balance or schedule amounts. |
+| [get_amount_for_pen_calc](api.md#get-amount-for-pen-calc-1) | Overdue interest or supplied overdue balance is negative. | Penalty base cannot be calculated on the invalid amounts. | Correct the overdue balance or schedule amounts. |
 | [get_interest_calc_dates](api.md#get-interest-calc-dates) | Invalid interest calculation timing. | The calculation date list is not produced. | Use the supported EOD/SOD timing value. |
 | [get_interest_calc_dates](api.md#get-interest-calc-dates) | Unsupported processing phase. | The calculation date list is not produced. | Use E or S. |
 | [get_interest_calc_dates_ex](api.md#get-interest-calc-dates-ex) | Invalid interest calculation timing. | The calculation date list is not produced. | Use the supported EOD/SOD timing value. |
@@ -64,6 +64,12 @@ This reference includes only meaningful application-level conditions located in 
 ## Transaction behavior
 
 Transaction effects must be reviewed per method. For example, `evaluate_limit_amount` contains a conditional `COMMIT` when both `p_caller_tx_fid` and `p_doc_no` are null. Do not generalize this behavior to the whole package.
+
+## Source mapping and review boundaries
+
+- Overloaded `get_amount_for_pen_calc` signatures must be mapped by parameter list, not method name alone. Negative overdue balance validation belongs to overload 1 (accepting `p_ovd_balance`).
+- A public method may call private procedures that raise an error; direct and delegated error sources must be distinguished when extending this register.
+- The current selection is **not exhaustive**. Absence from this table does not imply a method cannot fail.
 
 ## Coverage and limitations
 
