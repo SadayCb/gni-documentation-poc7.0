@@ -34,18 +34,22 @@ Its implementation interacts with loan master data, financial accounts, repaymen
 
 ## High-level workflow preview
 
-The package supports distinct financial processes rather than one universal loan lifecycle. The following diagram shows a verified **limit evaluation** path, not a mandatory flow for other operations.
+The package spans several related loan capabilities rather than one fixed lifecycle. This diagram is a **conceptual capability overview**, not a prescribed execution order.
 
 ```mermaid
 flowchart TD
-    A[Select eligible loan limits] --> B[Calculate available limit]
-    B --> C{Difference from recorded limit?}
-    C -->|Yes| D[Construct debit and credit entries]
-    C -->|No| E[No adjustment required]
-    D --> F[Post journal and record history]
+    A[APEX modules and processing jobs] --> B[GAIA.LOAN_API]
+    B --> C[Accounts and loan operations]
+    B --> D[Payments and schedules]
+    B --> E[Interest and overdue processing]
+    B --> F[Accounting and transaction history]
+    C --> G[(Loan data)]
+    D --> G
+    E --> G
+    F --> G
 ```
 
-[Explore detailed workflows](workflows.md)
+[Explore cross-cutting workflows](workflows.md)
 
 ## Key integration notes
 
