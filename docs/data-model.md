@@ -1,33 +1,22 @@
-# Data Model — LOAN_API
+# LOAN_API — Data Model
 
-> **Status:** Draft. This is a selective logical data model from the supplied source, not a complete database schema or ER diagram.
+[← Overview](index.md) · [API Reference](api.md) · [Dependencies](dependencies.md)
 
-## Key Tables
+This is a **source-observed access register**. Observed joins do not establish DDL foreign keys.
 
-| Table | Role observed in package body |
-|---|---|
-| `KRD_TEKLIF_DETAY` | Loan detail and identification by document number (`SENED_NO`) |
-| `CS_ACCOUNT` | Loan-linked accounts and balance inputs |
-| `LOAN_PAYMENT_PLAN` | Scheduled, paid and overdue payment data |
-| `LOAN_ACC_TYPES_PR` | Account types and calculation/allocation groups |
-| `KRD_PYM_ORDER` | Allocation settings used in loan amount calculations |
-| `LOAN_INT_CALC_TYPES_PR` | Interest day-count and calculation conventions |
-| `LOAN_OPERATION_HISTORY` | Recorded operation history and additional JSON details |
-| `LOAN_HISTORY_MAPPING` | Configurable tag mapping to table/column fields |
-| `LOAN_OPERATION_DESC` | Operation-to-transaction-caller mapping |
-| `PKRD_TURKOD_PR` | Product settings including minimum overdue amount |
+| Database object | Observed operation | Role / use | Public API |
+|---|---|---|---|
+| `KRD_TEKLIF_DETAY` | SELECT | Loan identity, status, line type, end date, offer and limit configuration | [evaluate_limit_amount](api.md#evaluate-limit-amount) |
+| `CS_ACCOUNT` | SELECT | Loan account balances and limit account values | [evaluate_limit_amount](api.md#evaluate-limit-amount) |
+| `LOAN_CATEGORY` | SELECT | Check active category 667 used for limit evaluation | [evaluate_limit_amount](api.md#evaluate-limit-amount) |
+| `LOAN_OPERATION_HISTORY` | SELECT | Prior tranche amounts and history metadata | [evaluate_limit_amount](api.md#evaluate-limit-amount), [reverse_update](api.md#reverse-update) |
+| `LOAN_ACC_TYPES_PR` | SELECT | Eligibility and payment-plan account grouping | [post_int_amount_to_plan](api.md#post-int-amount-to-plan) |
+| `LOAN_PAYMENT_PLAN` | SELECT, UPDATE | Standard repayment schedule and interest posting | [post_int_amount_to_plan](api.md#post-int-amount-to-plan), [get_amount_for_pen_calc](api.md#get-amount-for-pen-calc-1) |
+| `LOAN_TRANCHE_PAYMENT_PLAN` | SELECT, UPDATE | Tranche-specific repayment schedule | [post_int_amount_to_plan](api.md#post-int-amount-to-plan) |
+| `KRD_GUARANTEE_MAIN`, `KRD_GUARANTEE_RELATIONS`, `KRD_GUARANTEE_C1` | SELECT | Qualifying guarantee commitments excluded from the penalty base when enabled | [get_amount_for_pen_calc](api.md#get-amount-for-pen-calc-1) |
 
-## Logical Relationships (illustrative)
+## Important qualifications
 
-```mermaid
-flowchart LR
-    A[Loan Details] -->|document number| B[Loan Payment Plan]
-    A -->|loan document| C[Customer / Loan Accounts]
-    D[Account Type Configuration] --> B
-    D --> C
-    E[Operation History] -->|document number| A
-```
-
-**Important:** Arrows show relationships used by the package; they do not certify database foreign-key constraints. For the authoritative physical ER diagram, export table DDL and foreign keys from the target schema.
-
-See also [Dependencies](dependencies.md) and [Public API Reference](api.md).
+- Operations above are verified **for the cited methods**, not a complete database-access inventory for all 89 public declarations.
+- `evaluate_limit_amount` posts journal entries through [do_journal_entry](api.md#do-journal-entry); this is not represented as a direct INSERT by the caller.
+- Reconcile actual primary keys, foreign keys, triggers and indirect package effects against target-schema DDL before treating this as a physical model.

@@ -1,6 +1,16 @@
-# Cross-cutting workflows
+# LOAN_API — Cross-cutting Workflows
 
-These diagrams represent **conceptual groupings** corroborated by the public API surface, not a complete call graph. Method-specific side effects require verification in the package body.
+[← Documentation Home](index.md) · [API Reference](api.md) · [Data Model](data-model.md) · [Dependencies](dependencies.md)
+
+This page provides a **high-level view** of the main areas where `GAIA.LOAN_API` participates. The diagrams group related public operations for architectural understanding; they **do not** prescribe a fixed sequence of calls or a complete runtime call graph.
+
+## Workflow overview
+
+| Area | What it covers |
+|---|---|
+| [Loan account creation and accounting](#loan-account-creation-and-accounting) | Account setup, accounting entries, and transaction history |
+| [EOD / SOD processing](#eod--sod-processing) | Core end-of-day and start-of-day loan operations |
+| [History and reversible mapped updates](#loan-history--reversible-mapped-updates) | Change metadata, mapped updates, and reversal |
 
 ## Loan account creation and accounting
 
@@ -14,7 +24,9 @@ flowchart TD
   F --> G[Loan operation history]
 ```
 
-## EOD/SOD processing
+These are **related capabilities**, not an assertion that every account-opening request invokes all three methods in this exact order. See [create_account](api.md#create-account), [create_journal_entries](api.md#create-journal-entries) and [create_loan_history](api.md#create-loan-history).
+
+## EOD / SOD processing
 
 ```mermaid
 flowchart TD
@@ -22,13 +34,13 @@ flowchart TD
   S --> P[DO_AUTO_PAYMENT]
   S --> O[DO_OVERDUE_TRANSIT_OPERATION]
   S --> R[DO_LOAN_CONTROL]
-  I --> C[(Loan and accounting tables)]
+  I --> C[(Loan and accounting data)]
   P --> C
   O --> C
   R --> C
 ```
 
-**Note:** Parallel order and scheduling dependencies are **not established** here. These routines must not be treated as freely interchangeable steps.
+**Important:** The package exposes these processing operations, but their scheduler-level execution order, concurrency and prerequisites are **not established** by this overview. See [do_int_calculation](api.md#do-int-calculation), [do_auto_payment](api.md#do-auto-payment), [do_overdue_transit_operation](api.md#do-overdue-transit-operation) and [do_loan_control](api.md#do-loan-control-1).
 
 ## Loan history / reversible mapped updates
 
@@ -41,4 +53,10 @@ flowchart TD
   F --> B
 ```
 
-**Security note:** Source builds dynamic UPDATE statements from mapped metadata and values. Inspect quoting, privileges, concurrency and logging before exposing this capability to customers.
+The diagram summarizes related metadata and reversal capabilities. It is **not** a guarantee that reversal follows the normal forward-update path identically. See [finalize_addtional_process](api.md#finalize-addtional-process), [reverse_update](api.md#reverse-update) and [Data Model](data-model.md).
+
+**Technical note:** Mapped updates use dynamic SQL in the implementation. Validate authorization, escaping, logging and transaction boundaries before exposing the operation to callers.
+
+---
+
+[← Back to Overview](index.md)

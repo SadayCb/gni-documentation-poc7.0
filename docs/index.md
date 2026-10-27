@@ -32,6 +32,24 @@ Its implementation interacts with loan master data, financial accounts, repaymen
 | [Accounting and audit](api.md#domain-accounting-and-audit) | Creates accounting postings and retrieves accounting mappings and journal information. | [Browse APIs](api.md#domain-accounting-and-audit) |
 | [History, metadata and reversal](api.md#domain-history-metadata-and-reversal) | Captures transaction metadata and loan operation history, and supports reversal of recorded changes. | [Browse APIs](api.md#domain-history-metadata-and-reversal) |
 
+## High-level workflow preview
+
+The package spans several related loan capabilities rather than one fixed lifecycle. This diagram is a **conceptual capability overview**, not a prescribed execution order.
+
+```mermaid
+flowchart TD
+    A[APEX modules and processing jobs] --> B[GAIA.LOAN_API]
+    B --> C[Accounts and loan operations]
+    B --> D[Payments and schedules]
+    B --> E[Interest and overdue processing]
+    B --> F[Accounting and transaction history]
+    C --> G[(Loan data)]
+    D --> G
+    E --> G
+    F --> G
+```
+
+[Explore cross-cutting workflows](workflows.md)
 
 ## Key integration notes
 

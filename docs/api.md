@@ -1,6 +1,6 @@
 # LOAN_API — API Reference
 
-[← Back to Overview](index.md) · [API Reference](api.md) · [Workflows](workflows.md) · [Data Model](data-model.md) · [Dependencies](dependencies.md) · [Error Handling](error-handling.md)
+[← Back to Overview](index.md) · [Workflows](workflows.md) · [Data Model](data-model.md) · [Dependencies](dependencies.md) · [Error Handling](error-handling.md)
 
 <a id="api-index"></a>
 ## API Index
@@ -12,8 +12,8 @@ Coordinates loan operations, validation, and operational control checks.
 **Procedures**
 - [do_delete_operation](#do-delete-operation)
 - [do_plan_control](#do-plan-control)
-- [do_loan_control](#do-loan-control-1) — varchar2, date
-- [do_loan_control](#do-loan-control-2) — varchar2, date
+- [do_loan_control](#do-loan-control-1) — 2 parameters
+- [do_loan_control](#do-loan-control-2) — 4 parameters
 - [do_loan_status_control](#do-loan-status-control)
 - [init_global_variables](#init-global-variables)
 
@@ -2606,11 +2606,11 @@ function get_amount_for_pen_calc(p_date                    in date,
 |---|---|---|
 | `p_date` | IN | Effective/processing date |
 | `p_doc_no` | IN | Loan document identifier |
-| `p_ovd_balance` | IN | Supplied `p_ovd_balance` input (number) |
+| `p_ovd_balance` | IN | Overdue balance included in the penalty base |
 | `p_is_pen_calc_on_int` | IN | Supplied `p_is_pen_calc_on_int` input (varchar2) |
 | `p_is_exclude_coll_amount` | IN | Supplied `p_is_exclude_coll_amount` input (varchar2) |
 | `p_overdue_min_amount_main` | IN | Supplied `p_overdue_min_amount_main` input (number) |
-| `p_loan_end_date` | IN | Supplied `p_loan_end_date` input (date) |
+| `p_loan_end_date` | IN | Contractual loan end date |
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
@@ -3239,10 +3239,10 @@ procedure evaluate_limit_amount(p_min_id        number default 0,
 
 | Parameter | Mode | Meaning |
 |---|---|---|
-| `p_min_id` | IN | Supplied `p_min_id` input (number) |
-| `p_max_id` | IN | Supplied `p_max_id` input (number) |
+| `p_min_id` | IN | Lower branch-number filter bound |
+| `p_max_id` | IN | Upper branch-number filter bound |
 | `p_doc_no` | IN | Loan document identifier |
-| `p_caller_tx_fid` | IN | Supplied `p_caller_tx_fid` input (number) |
+| `p_caller_tx_fid` | IN | Optional originating transaction identifier |
 
 **Business Logic**
 
@@ -3596,11 +3596,11 @@ function get_trn_caller_id(p_oper_type in varchar2) return number;
 
 **Business Logic**
 
-- Reads `LOAN_OPERATION_DESC` to obtain operation inputs or existing loan data.
+- Looks up the transaction caller identifier in `LOAN_OPERATION_DESC` for the specified operation type.
 
 **Business Rules**
 
-No explicit business-specific rules identified in the supplied source.
+- The requested operation type must have a matching configuration entry; missing configuration is reported through `R(...)`.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
