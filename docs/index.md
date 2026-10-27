@@ -32,20 +32,6 @@ Its implementation interacts with loan master data, financial accounts, repaymen
 | [Accounting and audit](api.md#domain-accounting-and-audit) | Creates accounting postings and retrieves accounting mappings and journal information. | [Browse APIs](api.md#domain-accounting-and-audit) |
 | [History, metadata and reversal](api.md#domain-history-metadata-and-reversal) | Captures transaction metadata and loan operation history, and supports reversal of recorded changes. | [Browse APIs](api.md#domain-history-metadata-and-reversal) |
 
-## High-level workflow preview
-
-The package supports distinct financial processes rather than one universal loan lifecycle. The following diagram shows a verified **limit evaluation** path, not a mandatory flow for other operations.
-
-```mermaid
-flowchart TD
-    A[Select eligible loan limits] --> B[Calculate available limit]
-    B --> C{Difference from recorded limit?}
-    C -->|Yes| D[Construct debit and credit entries]
-    C -->|No| E[No adjustment required]
-    D --> F[Post journal and record history]
-```
-
-[Explore detailed workflows](workflows.md)
 
 ## Key integration notes
 
