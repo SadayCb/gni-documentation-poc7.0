@@ -30,4 +30,4 @@ flowchart LR
 
 **Important:** Arrows show relationships used by the package; they do not certify database foreign-key constraints. For the authoritative physical ER diagram, export table DDL and foreign keys from the target schema.
 
-See also [Dependencies](reference/dependencies.md) and [Public API Reference](api/loan-api.md).
+See also [Dependencies](dependencies.md) and [Public API Reference](api.md).
