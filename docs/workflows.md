@@ -1,72 +1,62 @@
-# LOAN_API — Verified Workflows
+# LOAN_API — Cross-cutting Workflows
 
-[← Overview](index.md) · [API Reference](api.md) · [Data Model](data-model.md)
+[← Documentation Home](index.md) · [API Reference](api.md) · [Data Model](data-model.md) · [Dependencies](dependencies.md)
 
-These workflows describe source-observed processing, not a universal loan lifecycle. Execution order across independent EOD/SOD jobs is not established by the supplied package.
+This page provides a **high-level view** of the main areas where `GAIA.LOAN_API` participates. The diagrams group related public operations for architectural understanding; they **do not** prescribe a fixed sequence of calls or a complete runtime call graph.
 
-## Workflow index
+## Workflow overview
 
-- [Limit evaluation and adjustment](#workflow-limit-evaluation)
-- [Interest amount posting to plan](#workflow-interest-posting)
-- [History reversal and mapped updates](#workflow-history-reversal)
+| Area | What it covers |
+|---|---|
+| [Loan account creation and accounting](#loan-account-creation-and-accounting) | Account setup, accounting entries, and transaction history |
+| [EOD / SOD processing](#eod--sod-processing) | Core end-of-day and start-of-day loan operations |
+| [History and reversible mapped updates](#loan-history--reversible-mapped-updates) | Change metadata, mapped updates, and reversal |
 
-<a id="workflow-limit-evaluation"></a>
-### Limit evaluation and adjustment
-
-**Entry point:** [evaluate_limit_amount](api.md#evaluate-limit-amount)
-
-**Purpose:** Align the recorded credit-line limit with the calculated available limit.
+## Loan account creation and accounting
 
 ```mermaid
 flowchart TD
- A[Select eligible open credit lines] --> B[Calculate available limit]
- B --> C{Recorded limit differs?}
- C -->|No| D[Skip adjustment]
- C -->|Yes| E[Determine debit and credit direction]
- E --> F[Post journal entries]
- F --> G[Record limit evaluation history]
+  A[Loan registration or another caller] --> B[LOAN_API.CREATE_ACCOUNT]
+  B --> C[Account configuration and account records]
+  A --> D[LOAN_API.CREATE_JOURNAL_ENTRIES]
+  D --> E[Journal rules and accounting entries]
+  A --> F[LOAN_API.CREATE_LOAN_HISTORY]
+  F --> G[Loan operation history]
 ```
 
-**Key rules:** Loan lines must meet the package's line-type, status, branch and optional document filters. Active category 667 or an elapsed loan end date sets the calculated limit to zero. Explicit commit occurs inside the loop only when both caller transaction ID and document filter are null.
+These are **related capabilities**, not an assertion that every account-opening request invokes all three methods in this exact order. See [create_account](api.md#create-account), [create_journal_entries](api.md#create-journal-entries) and [create_loan_history](api.md#create-loan-history).
 
-**Effects:** Accounting entries and loan operation history are created for processed differences. [Data Model](data-model.md) · [Errors](error-handling.md)
-
-<a id="workflow-interest-posting"></a>
-### Interest amount posting to plan
-
-**Entry point:** [post_int_amount_to_plan](api.md#post-int-amount-to-plan)
-
-**Purpose:** Update scheduled interest amounts for either standard or tranche plans.
+## EOD / SOD processing
 
 ```mermaid
 flowchart TD
- A[Receive loan account type and date] --> B[Check eligible account configuration]
- B --> C{Posting permitted?}
- C -->|No| D[Report application error]
- C -->|Yes| E{Tranche selector}
- E -->|N| F[Log and update standard plan]
- E -->|Y| G[Log and update tranche plan]
- E -->|Other| D
- F --> H[Check matching row]
- G --> H
+  S[EOD / SOD orchestrator] --> I[DO_INT_CALCULATION]
+  S --> P[DO_AUTO_PAYMENT]
+  S --> O[DO_OVERDUE_TRANSIT_OPERATION]
+  S --> R[DO_LOAN_CONTROL]
+  I --> C[(Loan and accounting data)]
+  P --> C
+  O --> C
+  R --> C
 ```
 
-**Key rules:** Posting is explicitly restricted to the `INT` account-type group after the configuration lookup. Grace-payment rows retain their scheduled amount. A schedule-update type 3 with zero remaining main payment results in an early return.
+**Important:** The package exposes these processing operations, but their scheduler-level execution order, concurrency and prerequisites are **not established** by this overview. See [do_int_calculation](api.md#do-int-calculation), [do_auto_payment](api.md#do-auto-payment), [do_overdue_transit_operation](api.md#do-overdue-transit-operation) and [do_loan_control](api.md#do-loan-control-1).
 
-**Effects:** Updates `LOAN_PAYMENT_PLAN` or `LOAN_TRANCHE_PAYMENT_PLAN`; calls table logging before DML. [Errors](error-handling.md)
-
-<a id="workflow-history-reversal"></a>
-### History reversal and mapped updates
-
-**Entry point:** [reverse_update](api.md#reverse-update) and [finalize_addtional_process](api.md#finalize-addtional-process)
+## Loan history / reversible mapped updates
 
 ```mermaid
 flowchart TD
- A[Load transaction history metadata] --> B[Resolve mapped changes]
- B --> C[Reconstruct prior values]
- C --> D[Apply mapped updates]
+  A[CLEAR_ADDTIONAL_DATA] --> B[ADD_ADDITIONAL_INFO / ADD_COLUMN_UPDATE]
+  B --> C[FINALIZE_ADDTIONAL_PROCESS]
+  C --> D[Mapped table updates and JSON OLD/NEW]
+  E[REVERSE_UPDATE by transaction] --> F[Read LOAN_OPERATION_HISTORY]
+  F --> B
 ```
 
-**Result:** The package uses additional history metadata and mapped updates to restore recorded values. The exact rollback/commit contract of dependencies is not determined from the supplied source; test transaction boundaries separately.
+The diagram summarizes related metadata and reversal capabilities. It is **not** a guarantee that reversal follows the normal forward-update path identically. See [finalize_addtional_process](api.md#finalize-addtional-process), [reverse_update](api.md#reverse-update) and [Data Model](data-model.md).
 
-[↑ Overview](index.md)
+**Technical note:** Mapped updates use dynamic SQL in the implementation. Validate authorization, escaping, logging and transaction boundaries before exposing the operation to callers.
+
+---
+
+[← Back to Overview](index.md)
