@@ -6,16 +6,21 @@
 
 It should be treated as **shared business infrastructure**, not as a single screen's controller.
 
-## Functional areas
+| Functional Area | Public Declarations | Description |
+|:--|--:|:--|
+| **Loan operations and controls** | 6 | Loan-operation support functions, caller identification, offer-related utilities, and loan control processing. |
+| **Accounts, guarantees and closure** | 8 | Loan account creation and features, account status changes, guarantee or collateral release, and loan closure operations. |
+| **Payments and balances** | 5 | Loan amount retrieval, payment allocation and detail assembly, and automated loan payment processing. |
+| **Payment schedules and dates** | 24 | Standard and annuity schedule generation, repayment dates, grace-period information, scheduled amounts, schedule checks, and adjustments. |
+| **Interest, penalties and rates** | 18 | Interest-calculation periods and bases, interest processing, penalty calculation, rate information, and related financial calculations or operations. |
+| **Delinquency and status** | 6 | Overdue date and threshold evaluation, delinquency transition decisions, and loan/account status handling. |
+| **Limits, tranches and overdrafts** | 4 | Credit limit evaluation, tranche creation, and overdraft-related operations. |
+| **Accounting and audit** | 9 | General-ledger mapping, journal entry generation and checking, voucher information, and change/audit support. |
+| **History, metadata and reversal** | 11 | Additional operation information, grouped metadata, operation history, and reversal of tracked changes. |
+| **Total** | **91** | **Public declarations, including overloaded variants.** |
 
-- **Accounts & Balances** — 14 public declaration(s).
-- **EOD/SOD & Operations** — 12 public declaration(s).
-- **History & Changes** — 13 public declaration(s).
-- **Interest & Penalties** — 12 public declaration(s).
-- **Journal & Vouchers** — 6 public declaration(s).
-- **Payments & Allocation** — 5 public declaration(s).
-- **Schedules & Rates** — 25 public declaration(s).
-- **Utilities & Configuration** — 1 public declaration(s).
+These categories are **documentation navigation groups**, not isolated business modules. A method may participate in multiple processes even though it is documented under one primary category. For the complete method list, follow the [Public API Index](api/loan-api.md#public-api-index).
+
 
 ## Technical context
 
