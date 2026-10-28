@@ -180,7 +180,10 @@ Captures transaction metadata and loan operation history, and supports reversal 
 
 **Type:** Procedure
 
-**Purpose:** Reverses a recorded loan transaction subject to the requested date and plan controls.
+**Description**
+
+Reverses a previously recorded loan operation identified by its transaction ID. The procedure retrieves the related operation history and accounting journal information, checks the requested date and payment-plan controls, and delegates reversal of the affected loan and accounting records. The reversal is tied to the original transaction rather than a new loan request.
+
 
 **Signature**
 
@@ -198,15 +201,6 @@ procedure do_delete_operation(p_tx_fid       number,
 | `p_date_control` | IN | Supplied `p_date_control` input (varchar2) |
 | `p_plan_control` | IN | Supplied `p_plan_control` input (varchar2) |
 
-**Business Logic**
-
-- Reads `LOAN_OPERATION_HISTORY`, `GL_JOURNAL_LINES` to obtain operation inputs or existing loan data.
-- Changes `GLBL_TRANSACTION` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `LOAN_TRANCHE_API`, `MM_ACCOUNTING#`, `KRD_EOD` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -220,7 +214,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the plan control operation for the supplied inputs.
+**Description**
+
+Runs repayment-plan control for a specified loan as of the requested processing date. It checks relevant loan-control exceptions from `LOAN_EOD_CONTROL_EXP` before evaluating the plan. The procedure is intended to support loan-processing checks rather than generate a new repayment schedule.
+
 
 **Signature**
 
@@ -236,14 +233,6 @@ procedure do_plan_control(p_document_no in varchar2,
 | `p_document_no` | IN | Supplied `p_document_no` input (varchar2) |
 | `p_date` | IN | Effective/processing date |
 
-**Business Logic**
-
-- Reads `LOAN_EOD_CONTROL_EXP` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -257,7 +246,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the loan control operation for the supplied inputs.
+**Description**
+
+Initiates the broader loan-control process for an operation type and processing date. It uses the loan control records and loan details available for that processing context, while delegating supporting orchestration to banking utilities. The operation type can be omitted, allowing the procedure to apply the processing scope established by its implementation.
+
 
 **Signature**
 
@@ -273,15 +265,6 @@ procedure do_loan_control(p_oper_type varchar2 default null,
 | `p_oper_type` | IN | Operation type selector |
 | `p_date` | IN | Effective/processing date |
 
-**Business Logic**
-
-- Reads `LOAN_EOD_CONTROL`, `KRD_TEKLIF_DETAY` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GNI_UTILITY`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GNI_UTILITY` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -295,7 +278,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the loan control operation for the supplied inputs.
+**Description**
+
+Processes a selected range of loan-control records using the supplied row ID boundaries, operation type and processing date. The procedure reads loan details, control exceptions and operation history, and writes the results to `LOAN_EOD_CONTROL`. This overload is designed for bounded or parallel control execution and contains explicit transaction commits.
+
 
 **Signature**
 
@@ -315,16 +301,6 @@ procedure do_loan_control(p_oper_type varchar2 default null,
 | `p_min_rowid` | IN | Supplied `p_min_rowid` input (rowid) |
 | `p_max_rowid` | IN | Supplied `p_max_rowid` input (rowid) |
 
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY`, `LOAN_EOD_CONTROL_EXP`, `LOAN_OPERATION_HISTORY` to obtain operation inputs or existing loan data.
-- Changes `LOAN_EOD_CONTROL` as part of the operation.
-- Contains an explicit `COMMIT`; transaction scope depends on the shown conditions.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -338,7 +314,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the loan status control operation for the supplied inputs.
+**Description**
+
+Evaluates the loan status for the account identified by branch, customer and loan account number. The procedure uses loan portfolio information to determine the relevant loan record and performs status-control processing, including related messages when applicable. Its scope is limited to the specified account rather than the entire loan portfolio.
+
 
 **Signature**
 
@@ -356,15 +335,6 @@ procedure do_loan_status_control(p_branch_no   in number,
 | `p_customer_no` | IN | Customer identifier |
 | `p_loan_acc` | IN | Supplied `p_loan_acc` input (number) |
 
-**Business Logic**
-
-- Reads `LOAN_PORTFOLIO_LITE` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GNI_MESSAGE`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GNI_MESSAGE` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -378,7 +348,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Provides init global variables behavior for loan processing.
+**Description**
+
+Loads and optionally resets shared package-level loan data for the specified document number. It retrieves the associated offer, loan detail, facility and repayment-plan records from `KRD_TEKLIF`, `KRD_TEKLIF_DETAY`, `KRD_TESIS` and `KRD_ODEME_PLAN`. Missing or invalid required records are reported instead of silently initializing incomplete loan state.
+
 
 **Signature**
 
@@ -393,16 +366,6 @@ Procedure init_global_variables(p_doc_no varchar2,
 |---|---|---|
 | `p_doc_no` | IN | Loan document identifier |
 | `p_reset` | IN | Supplied `p_reset` input (boolean) |
-
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY`, `KRD_TEKLIF`, `KRD_TESIS`, `KRD_ODEME_PLAN` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-- [krd_teklif_detay] is invalid
-- [krd_teklif] is invalid
-- [krd_tesis] is invalid
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -419,7 +382,10 @@ Procedure init_global_variables(p_doc_no varchar2,
 
 **Type:** Function
 
-**Purpose:** Selects a configured amount range for the supplied operation, account and tranche information.
+**Description**
+
+Determines a configured return amount for the supplied operation and account type from `LOAN_AMOUNT_RANGE_INFO`. It searches for a range containing the requested amount and considers the tranche type when that configuration is applicable. The selected row determines the returned amount; missing or overlapping matching configurations are treated as configuration errors.
+
 
 **Signature**
 
@@ -441,14 +407,6 @@ function get_amount_by_range(p_oper_type    in varchar2,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_AMOUNT_RANGE_INFO` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -462,7 +420,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves an amount for the specified loan and amount category.
+**Description**
+
+Retrieves a requested amount category for a specified loan, optionally evaluated for a processing date and operation type. It uses loan-linked account data in `CS_ACCOUNT` and relevant account/operation selections to obtain the applicable amount. The result depends on the requested amount category, so it is not necessarily the total outstanding loan balance.
+
 
 **Signature**
 
@@ -485,15 +446,6 @@ function get_loan_amount(p_doc_no      in varchar2,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `CS_ACCOUNT` to obtain operation inputs or existing loan data.
-- Delegates related processing to `P`, `O`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `P`, `O` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -507,7 +459,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates offer id information.
+**Description**
+
+Generates or retrieves a loan offer identifier for the requested branch and date. It updates the offer-number tracking data in `KRD_TEKLIF_NO`, ensuring the returned identifier follows the configured numbering process. The method includes an explicit commit and therefore affects transaction handling even though it is declared as a function.
+
 
 **Signature**
 
@@ -525,15 +480,6 @@ Function get_offer_id(p_branch_id In Number Default Glbl.Getsube,
 | `P_date` | IN | Effective/processing date |
 
 **Returns:** `Varchar2` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Changes `KRD_TEKLIF_NO` as part of the operation.
-- Contains an explicit `COMMIT`; transaction scope depends on the shown conditions.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -557,7 +503,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Creates loan-linked accounts using account-type configuration.
+**Description**
+
+Creates the required loan-linked banking accounts for a loan document and operation type. The procedure reads contract details, facility information, account-type settings and interest-day configuration to determine which account records are needed. It creates or associates the accounts, updates the relevant loan/facility references and returns the created account details in `P_CREATED_ACC`.
+
 
 **Signature**
 
@@ -579,15 +528,6 @@ procedure create_account(p_doc_no      in varchar2,
 | `p_tx_fid` | IN | Transaction identifier |
 | `p_created_acc` | OUT | g_loan_accounts_tab value populated by the operation |
 
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY`, `KRD_TESIS`, `SP_FAIZ_GUN_TANIM_PR`, `LOAN_ACC_TYPES_PR` to obtain operation inputs or existing loan data.
-- Changes `KRD_TESIS`, `KRD_TEKLIF_DETAY` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_TARIH`, `GLBL_NAME`, `GNI_MESSAGE` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -601,7 +541,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the loan collateral out operation for the supplied inputs.
+**Description**
+
+Processes the release of collateral associated with the specified loan. It identifies linked customer accounts and applicable collateral types, including real estate, vehicles and other pledged asset records. The procedure updates the relevant collateral records to reflect the release process and uses the loan's account relationships to select the affected guarantees or assets.
+
 
 **Signature**
 
@@ -614,15 +557,6 @@ procedure do_loan_collateral_out(p_doc_no in varchar2);
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `p_doc_no` | IN | Loan document identifier |
-
-**Business Logic**
-
-- Reads `CS_ACCOUNT`, `KRD_TEMINAT_TIP_PR`, `KRD_SCOR_REAL_ESTATE_C`, `KRD_SCOR_AUTO_C` to obtain operation inputs or existing loan data.
-- Changes `KRD_SCOR_REAL_ESTATE_C`, `KRD_SCOR_AUTO_C`, `KRD_SCOR_ESYA_C`, `KRD_SCOR_EMANET_C` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `GLBL_EOD`, `TRN_BROKER`, `GLBL_CCY`, `PA_API#`, `MM_ACCOUNTING#` · [Dependency register](dependencies.md).
 
@@ -637,7 +571,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the guarantee out operation for the supplied inputs.
+**Description**
+
+Releases or processes guarantee obligations associated with a selected branch, customer or loan account. The procedure uses facility information and account balances to identify the eligible guarantee relationships, then delegates the necessary guarantee and transaction operations to supporting banking modules. The optional input parameters determine the scope of loans considered.
+
 
 **Signature**
 
@@ -655,15 +592,6 @@ Procedure do_guarantee_out(p_branch_id   In Number Default Null,
 | `p_customer_no` | IN | Customer identifier |
 | `p_loan_acc` | IN | Supplied `p_loan_acc` input (Number) |
 
-**Business Logic**
-
-- Reads `KRD_TESIS` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GLBL_BAKIYE`, `APEX_KRD2220_0_API_P`, `TRN_BROKER`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_BAKIYE`, `APEX_KRD2220_0_API_P`, `TRN_BROKER`, `KRD2220_0_API` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -677,7 +605,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the loan close with collateral out operation for the supplied inputs.
+**Description**
+
+Coordinates loan closure together with collateral-release processing. It reads the related loan portfolio, automatic-close records and limit-change history, then updates loan status and relevant closure records. The procedure combines financial account closure with collateral-related handling, so its effects extend beyond a simple status flag update.
+
 
 **Signature**
 
@@ -690,16 +621,6 @@ procedure do_Loan_Close_With_Collateral_Out(p_doc_no in varchar2);
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `p_doc_no` | IN | Loan document identifier |
-
-**Business Logic**
-
-- Reads `LOAN_PORTFOLIO_LITE`, `LOAN_EOD_AUTO_CLOSE`, `LOAN_TRANCHE_LIMIT_CHANGES_HISTORY` to obtain operation inputs or existing loan data.
-- Changes `KRD_TEKLIF_DETAY`, `KRD_FON_VERILME`, `LOAN_EOD_AUTO_CLOSE` as part of the operation.
-- Contains an explicit `COMMIT`; transaction scope depends on the shown conditions.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `GLBL_EOD`, `GLBL_HESAP`, `TRN_BROKER` · [Dependency register](dependencies.md).
 
@@ -714,7 +635,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the non cash loan close operation for the supplied inputs.
+**Description**
+
+Processes closure of a non-cash loan using the specified loan document and processing date. It retrieves the related facility and account balances and delegates accounting or guarantee-related closure steps to the corresponding banking services. The procedure operates on the matched contract rather than performing a general batch closure.
+
 
 **Signature**
 
@@ -730,15 +654,6 @@ Procedure do_non_cash_loan_close(p_doc_no in varchar2,
 | `p_doc_no` | IN | Loan document identifier |
 | `p_Date` | IN | Effective/processing date |
 
-**Business Logic**
-
-- Reads `KRD_TESIS`, `CS_ACCOUNT` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GLBL_BAKIYE`, `APEX_KRD2220_0_API_P`, `TRN_BROKER`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_BAKIYE`, `APEX_KRD2220_0_API_P`, `TRN_BROKER`, `KRD2220_0_API` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -752,7 +667,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the change account status operation for the supplied inputs.
+**Description**
+
+Changes the account status associated with the specified loan document. It identifies the linked loan and account records from `KRD_TEKLIF_DETAY` and `CS_ACCOUNT`, then applies the requested open (`O`) or close (`C`) action through account services. It also interacts with loan-category handling where required by the operation.
+
 
 **Signature**
 
@@ -767,15 +685,6 @@ procedure change_account_status(p_doc_no in varchar2,
 |---|---|---|
 | `p_doc_no` | IN | Loan document identifier |
 | `p_status` | IN | Supplied `p_status` input (varchar2) |
-
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY`, `CS_ACCOUNT` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GLBL_HESAP`, `LOAN_CATEGORY_API`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `GLBL_HESAP`, `LOAN_CATEGORY_API` · [Dependency register](dependencies.md).
 
@@ -792,7 +701,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates gl acc active passive information.
+**Description**
+
+Determines whether a GL account is configured as active or passive. The function looks up the specified account number in `GL_ACCOUNT_DEFINE` and returns the configured classification. A missing or ambiguous matching definition is reported rather than selecting an arbitrary account record.
+
 
 **Signature**
 
@@ -808,14 +720,6 @@ function get_gl_acc_active_passive(p_acc_no in varchar2) return varchar2 result_
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `GL_ACCOUNT_DEFINE` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -829,7 +733,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Resolves the GL account using configured loan/product/account parameters.
+**Description**
+
+Resolves the general-ledger account from a configured mapping matrix. The matching rules consider the supplied loan product, customer type, period, currency, base-account category and account type, optionally using the loan document to obtain additional context. The function returns the matching account only when the configuration resolves unambiguously.
+
 
 **Signature**
 
@@ -857,16 +764,6 @@ function get_gl_acc_from_matrix(p_product_code in number default null,
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Resolves accounting account mappings from product, period, currency and loan characteristics.
-- Retrieves the applicable mapped GL account.
-
-**Business Rules**
-
-- p_gl_base_type should be MAIN - for main account, OVD_MAIN - for overdue account!
-- p_acc_type is invalid!
-
 **Dependencies:** `GLBL_HESAP` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -880,7 +777,10 @@ function get_gl_acc_from_matrix(p_product_code in number default null,
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates account feature information.
+**Description**
+
+Returns the stored feature or classification of a banking account. The lookup uses the account number and subaccount, together with the supplied branch where applicable, to select the matching `CS_ACCOUNT` record. This function reads account metadata and does not create or modify an account.
+
 
 **Signature**
 
@@ -901,15 +801,6 @@ function get_account_feature(p_branch_no   number,
 
 **Returns:** `cs_account.account_feature%type` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Looks up the account feature for the supplied account number/subaccount, optionally constrained by branch.
-- Returns the stored account feature value.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_TARIH` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -923,7 +814,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Opens a new account and returns its account identifier.
+**Description**
+
+Creates a new bank account for the supplied branch, customer, account configuration and loan. The function passes currency, account type, interest rates, product and loan-document details to account services, and returns the new account identifier. The optional parameters influence how the created account is configured and linked.
+
 
 **Signature**
 
@@ -967,15 +861,6 @@ function get_new_acc(p_branch_no       in number,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Resolves loan account setup and creates a linked account through account services.
-- Returns the newly created account identifier.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GNI_MESSAGE`, `GLBL_HESAP` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -989,7 +874,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates acc type by status information.
+**Description**
+
+Resolves the destination account type when a loan changes status. It looks up `LOAN_ACC_TYPE_MAPPING` using the original account type together with the source and target loan statuses, then returns the mapped account type. Missing or inconsistent mappings are reported because the transition cannot be resolved reliably.
+
 
 **Signature**
 
@@ -1009,14 +897,6 @@ function get_acc_type_by_status(p_acc_type         varchar2,
 | `p_from_loan_status` | IN | Supplied `p_from_loan_status` input (varchar2) |
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Reads `LOAN_ACC_TYPE_MAPPING` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -1040,7 +920,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Updates scheduled interest amounts for a standard loan or a tranche loan.
+**Description**
+
+Updates the scheduled interest amount for a specified loan, payment date and account type in either a standard or tranche-based repayment plan. It first checks `LOAN_ACC_TYPES_PR` for an enabled payment-plan account type and proceeds only for the `INT` group. It retrieves the corresponding principal installment from the tranche and standard plans, matching document, payment date, account type and tranche where applicable. If schedule-update type `3` has no remaining principal payment, the procedure exits without changing the plan. Otherwise, it logs the affected plan and updates `LOAN_PAYMENT_PLAN` or `LOAN_TRANCHE_PAYMENT_PLAN`, taking paid amounts and outstanding earlier open installments into account. Grace-payment rows retain their scheduled amount.
+
 
 **Signature**
 
@@ -1066,18 +949,6 @@ procedure post_int_amount_to_plan(p_doc_no               in varchar2,
 | `p_plan_date` | IN | Supplied `p_plan_date` input (date) |
 | `p_with_tranche_info_yn` | IN | Supplied `p_with_tranche_info_yn` input (varchar2) |
 
-**Business Logic**
-
-- Validates account type configuration before posting plan interest amounts.
-- Calculates the target payment amount using the supplied amount, paid amount, and preceding open-plan balances.
-- Updates either standard or tranche payment plans and marks the selected plan row open.
-
-**Business Rules**
-
-- Only configured payment-plan account types in the specified groups are considered, with posting limited to the `INT` group.
-- Plan selection requires tranche mode `Y` or standard mode `N`; the target row must exist.
-- Grace-payment rows may preserve their original payment amount.
-
 **Dependencies:** `LOAN_TRANCHE_API` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1091,7 +962,10 @@ procedure post_int_amount_to_plan(p_doc_no               in varchar2,
 
 **Type:** Procedure
 
-**Purpose:** Builds account-level allocations for a loan payment amount.
+**Description**
+
+Builds a payment allocation list for the specified loan, operation type and requested payment amount. It identifies the eligible loan accounts, their balances and payment-plan information, then distributes the amount according to account and allocation configuration. Negative requested payments or amounts exceeding the available eligible balance are rejected; the outputs include the populated account allocation list and any applicable schedule-update indicator.
+
 
 **Signature**
 
@@ -1113,15 +987,6 @@ procedure generate_allocated_payment_list(p_doc_no                in varchar2,
 | `p_has_schedule_upd_type` | OUT | varchar2 value populated by the operation |
 | `p_payment_list` | OUT | loan_api.g_loan_accounts_tab value populated by the operation |
 
-**Business Logic**
-
-- Collects eligible loan accounts and balances for the specified operation.
-- Produces the allocated payment list and reports whether schedule-update behavior applies.
-
-**Business Rules**
-
-- Payment amount cant be negative!
-
 **Dependencies:** `P`, `O` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1135,7 +1000,10 @@ procedure generate_allocated_payment_list(p_doc_no                in varchar2,
 
 **Type:** Procedure
 
-**Purpose:** Enriches the loan payment allocation list with destination and schedule information.
+**Description**
+
+Completes an existing payment allocation list with the information needed to execute the payment. For the specified loan it resolves payment destination accounts, account types, balances and related schedule details, then updates the supplied collection in place. The procedure also returns whether payment-plan schedule-update behavior applies to the assembled allocation.
+
 
 **Signature**
 
@@ -1153,14 +1021,6 @@ procedure add_payment_details(p_doc_no                in varchar2,
 | `p_has_schedule_upd_type` | OUT | varchar2 value populated by the operation |
 | `p_payment_list` | IN OUT | loan_api.g_loan_accounts_tab value populated by the operation |
 
-**Business Logic**
-
-- Augments the payment list with account-specific payment metadata and current balance information.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `O` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1174,7 +1034,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Processes automatic loan payments for eligible loans in the specified EOD/SOD context.
+**Description**
+
+Executes automatic loan payment processing for the selected loan or processing range in an EOD/SOD context. It selects eligible loan and payment-plan records, excluding configured EOD exceptions, and determines account balances and available payment amounts. The procedure delegates allocation and account operations to banking services, supports plan and off-plan payment modes, and contains transaction commits within its batch processing.
+
 
 **Signature**
 
@@ -1196,17 +1059,6 @@ Procedure do_Auto_Payment(p_min_id     number default null,
 | `p_eod_sod` | IN | EOD/SOD processing selector |
 | `p_test_param` | IN | Supplied `p_test_param` input (number) |
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN`, `KRD_TEKLIF_DETAY`, `EOD_PROGRAMS_EXCEPTION` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GNI_UTILITY`, `GLBL_BAKIYE`, `GLBL_CCY`.
-- Contains an explicit `COMMIT`; transaction scope depends on the shown conditions.
-- Contains explicit rollback handling.
-
-**Business Rules**
-
-- Auto payment type should be 1-Plan payment or 2-Off plan payment!
-
 **Dependencies:** `GNI_UTILITY`, `GLBL_BAKIYE`, `GLBL_CCY`, `LOAN_TRANCHE_API`, `APEX_KRD2204_0_API_P` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1222,7 +1074,10 @@ Procedure do_Auto_Payment(p_min_id     number default null,
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates overdue min amount information.
+**Description**
+
+Retrieves the minimum overdue amount configured for a loan product. The function searches `PKRD_TURKOD_PR` by product code (`URUN_KOD`) and selects `OVERDUE_MIN_AMOUNT_MAIN` for principal (`MAIN`) or `OVERDUE_MIN_AMOUNT_INT` for interest (`INT`). A null or unsupported account-type mapping is treated as zero; a missing product configuration is reported as an application error.
+
 
 **Signature**
 
@@ -1240,14 +1095,6 @@ function get_overdue_min_amount(p_product_code in number,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `PKRD_TURKOD_PR` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1261,7 +1108,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates overdue grace days information.
+**Description**
+
+Retrieves the overdue grace period configured for the specified loan product and account type. It reads the appropriate principal or interest grace-day setting from `PKRD_TURKOD_PR` after matching the product code. The returned day count is used when determining whether scheduled payments qualify for overdue processing.
+
 
 **Signature**
 
@@ -1279,14 +1129,6 @@ function get_overdue_grace_days(p_product_code in number,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `PKRD_TURKOD_PR` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1300,7 +1142,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates next plan pym information.
+**Description**
+
+Returns the next applicable payment-plan amount for a specified loan, account type and reference date. It reads scheduled installments from `LOAN_PAYMENT_PLAN` and uses the supplied date and account-type selection to identify the relevant future or outstanding plan payment. The function is a plan lookup rather than a payment execution routine.
+
 
 **Signature**
 
@@ -1320,14 +1165,6 @@ Function get_next_Plan_Pym(p_doc_no   In Varchar2,
 
 **Returns:** `Number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -1341,7 +1178,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates plan payment amount information.
+**Description**
+
+Retrieves the planned payment amount for the specified loan, date and optional account type. It determines whether the loan uses tranche-specific schedules and selects the applicable plan information accordingly. The result represents a scheduled amount for the selected context rather than a general account balance.
+
 
 **Signature**
 
@@ -1361,15 +1201,6 @@ function get_plan_payment_amount(p_doc_no   in varchar2,
 | `p_acc_type` | IN | Loan account type |
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Determines whether the loan uses tranche-specific plan information.
-- Reads the relevant plan amount for the date and account type.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `LOAN_TRANCHE_API` · [Dependency register](dependencies.md).
 
@@ -1393,7 +1224,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the recalculate int payment plan operation for the supplied inputs.
+**Description**
+
+Recalculates interest installments for a specified loan and account type using the principal amount, interest ratio and interest calculation convention. It updates corresponding plan rows under the requested schedule update mode, which must be `3` or `4`. The procedure adjusts the interest payment schedule rather than generating a new loan contract.
+
 
 **Signature**
 
@@ -1417,15 +1251,6 @@ procedure recalculate_int_payment_plan(p_doc_no               in varchar2,
 | `p_int_calc_type` | IN | Supplied `p_int_calc_type` input (varchar2) |
 | `p_schedule_update_type` | IN | Supplied `p_schedule_update_type` input (number) |
 
-**Business Logic**
-
-- Recalculates scheduled interest amounts using principal, rate, interest calculation convention and schedule update mode.
-- Updates matching interest repayment plan records.
-
-**Business Rules**
-
-- p_schedule_update_type should be 3 or 4!
-
 **Dependencies:** `GLBL_FAIZ` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1439,7 +1264,10 @@ procedure recalculate_int_payment_plan(p_doc_no               in varchar2,
 
 **Type:** Procedure
 
-**Purpose:** Performs the schedule allignment operation for the supplied inputs.
+**Description**
+
+Aligns the repayment plan for a loan with a supplied payment amount, account type and date. It reads the relevant entries from `LOAN_PAYMENT_PLAN` and updates plan amounts or states to reflect the requested alignment. Only plan rows matching the loan and applicable payment context are affected.
+
 
 **Signature**
 
@@ -1459,15 +1287,6 @@ Procedure do_schedule_allignment(p_doc_no         In Varchar2,
 | `p_acc_type` | IN | Loan account type |
 | `p_date` | IN | Effective/processing date |
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN` to obtain operation inputs or existing loan data.
-- Changes `LOAN_PAYMENT_PLAN` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1481,7 +1300,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the com schedule allignment operation for the supplied inputs.
+**Description**
+
+Adjusts a loan's commission repayment schedule for the requested option, amount and plan type. The procedure reads facility and commission-plan information, then updates `KRD_KOM_PLAN_DETAY` and related accounting records where the selected commission operation requires it. The migration indicator and option code affect the chosen processing path.
+
 
 **Signature**
 
@@ -1503,15 +1325,6 @@ Procedure do_com_schedule_allignment(p_doc_no      In Varchar2,
 | `p_plan_type` | IN | Supplied `p_plan_type` input (Varchar2) |
 | `p_mig_status` | IN | Supplied `p_mig_status` input (Number) |
 
-**Business Logic**
-
-- Reads `KRD_TESIS`, `KRD_KOM_PLAN_DETAY` to obtain operation inputs or existing loan data.
-- Changes `KRD_KOM_PLAN_DETAY`, `CS_ACCOUNT` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLOG` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1525,7 +1338,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Retrieves or evaluates special schedule information.
+**Description**
+
+Builds or updates a special repayment schedule for a loan using the requested principal amount, interest rate, calculation convention and optional annuity or remaining-interest values. It uses temporary schedule data in `ODEME_PLAN_TMP2` while preparing the result. The procedure supports a loan-specific schedule rather than returning a generic preconfigured plan.
+
 
 **Signature**
 
@@ -1553,15 +1369,6 @@ Procedure get_special_schedule(p_doc_no             In Varchar2,
 | `p_annuity_amount` | IN | Supplied `p_annuity_amount` input (Number) |
 | `p_remain_int_amount` | IN | Supplied `p_remain_int_amount` input (number) |
 
-**Business Logic**
-
-- Reads `ODEME_PLAN_TMP2` to obtain operation inputs or existing loan data.
-- Changes `ODEME_PLAN_TMP2` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_FAIZ` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -1575,7 +1382,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Retrieves or evaluates created schedule information.
+**Description**
+
+Retrieves a previously generated schedule using its identifier. It selects the matching schedule information from the temporary or generated schedule data and prepares it for subsequent use. If no record exists for the supplied identifier, the procedure reports the missing schedule.
+
 
 **Signature**
 
@@ -1588,14 +1398,6 @@ Procedure get_created_schedule(p_fid number);
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `p_fid` | IN | Supplied `p_fid` input (number) |
-
-**Business Logic**
-
-- Reads `CREATE_SCHEDULE_PARAMETRS` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -1610,7 +1412,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Generates and persists a loan repayment schedule from the supplied terms.
+**Description**
+
+Generates a repayment schedule from the supplied loan amount, dates, interest settings, payment periods, grace rules and schedule options. It supports both standard and annuity-related configurations, including optional flow-rate, stop-rate and special-date inputs. The method routes the requested schedule generation into the appropriate calculations and stores or assembles the resulting repayment entries for the chosen target.
+
 
 **Signature**
 
@@ -1690,15 +1495,6 @@ procedure create_schedule(p_schedule_no          number,
 | `p_loan_stop_rate_tab` | IN | Supplied `p_loan_stop_rate_tab` input (LOAN_STOP_RATE_TAB) |
 | `p_special_dates` | IN | Supplied `p_special_dates` input (loan_special_dates_tab) |
 
-**Business Logic**
-
-- Prepares or persists a loan schedule using the supplied schedule number and associated loan/memorandum parameters.
-- Uses the selected dates, repayment intervals and rates to determine the generated plan.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -1712,7 +1508,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Updates the repayment plan of a specified loan.
+**Description**
+
+Updates repayment-plan records associated with the specified loan document. It initializes the relevant loan context and applies the schedule changes required by the current contract configuration, including checks for tranche-related handling. The procedure modifies payment-plan state and should be reviewed alongside the loan's active schedule setup.
+
 
 **Signature**
 
@@ -1726,15 +1525,6 @@ PROCEDURE UPDATE_PAYMENT_PLAN(
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `P_DOC_NO` | IN | Loan document identifier |
-
-**Business Logic**
-
-- Loads loan and temporary payment plan data for the requested document.
-- Applies the plan update using the stored account and schedule information.
-
-**Business Rules**
-
-- This operation cannot be initialized when [with_tranche_info_yn] =
 
 **Dependencies:** `API_CALENDAR`, `TRN_BROKER`, `GAIA` · [Dependency register](dependencies.md).
 
@@ -1751,7 +1541,10 @@ PROCEDURE UPDATE_PAYMENT_PLAN(
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates formatted grace from list information.
+**Description**
+
+Converts a supplied grace-period list into the formatted representation used by repayment-plan processing. The function interprets the period-list values and assembles the corresponding readable or normalized sequence. It performs format conversion rather than querying an existing loan account.
+
 
 **Signature**
 
@@ -1768,14 +1561,6 @@ function get_formatted_grace_from_list(p_period_list in varchar2)
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1789,7 +1574,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates grace info information.
+**Description**
+
+Retrieves grace-period information for a specified loan, account type and period-end date. The requested information type controls which grace details are returned. The function uses the loan's repayment and grace configuration to report the portion relevant to the selected period.
+
 
 **Signature**
 
@@ -1811,14 +1599,6 @@ function get_grace_info(p_Doc_No          In Varchar2,
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1832,7 +1612,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates commission schedule information.
+**Description**
+
+Produces a commission payment schedule over the supplied date range for the specified amount and interest-calculation convention. The pipelined function calculates the corresponding commission installments and returns the generated schedule rows. Its output can be consumed as a table rather than written to a loan record by the function itself.
+
 
 **Signature**
 
@@ -1856,15 +1639,6 @@ Function get_commission_schedule(p_begin_date    In Date,
 
 **Returns:** `Krd_Kom_Plan_Tt` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Delegates related processing to `GLBL_FAIZ`, `GNI_MESSAGE`, `GLBL_TARIH`.
-- Pipelines generated rows to the caller.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_FAIZ`, `GNI_MESSAGE`, `GLBL_TARIH` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -1878,7 +1652,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Calculates a loan-adjusted date after applying a month offset and optional target day.
+**Description**
+
+Calculates a loan-related date by moving the supplied date forward or backward by the requested number of months. When a preferred payment day is supplied, the function tries to align the resulting date with that day, accounting for months in which the day does not exist. It returns the computed date without changing loan data.
+
 
 **Signature**
 
@@ -1898,14 +1675,6 @@ function add_months_for_loan(p_date   date,
 
 **Returns:** `date` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -1919,7 +1688,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates plan month count information.
+**Description**
+
+Calculates the number of repayment months between the supplied start and end dates under the chosen interest day-count convention. It also considers whether working-day adjustments and a preferred payment day apply. The returned count is used for schedule-related calculations rather than reflecting the number of payments already made.
+
 
 **Signature**
 
@@ -1944,14 +1716,6 @@ Function get_Plan_Month_Count(p_Start_Date    In Date,
 
 **Returns:** `Number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Delegates related processing to `GLBL_FAIZ`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_FAIZ` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -1965,7 +1729,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates plan paid month count information.
+**Description**
+
+Determines the number of paid repayment periods for a loan up to the selected date. The calculation uses the loan document, contract term and payment-plan history to assess paid months. It returns a count, not the total monetary amount repaid.
+
 
 **Signature**
 
@@ -1985,14 +1752,6 @@ function get_plan_paid_month_count(p_doc_no in varchar2,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2006,7 +1765,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates plan error information.
+**Description**
+
+Evaluates a loan's repayment plan for control issues as of the supplied date. It examines relevant plan data and returns an error or control message when an inconsistency is identified. The function is used for validation and reporting rather than modifying the repayment schedule.
+
 
 **Signature**
 
@@ -2025,14 +1787,6 @@ Function get_plan_error(p_doc_no varchar2,
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Delegates related processing to `GLBL`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2046,7 +1800,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates annuity amount information.
+**Description**
+
+Obtains the annuity installment amount associated with the specified loan. It uses the loan's scheduled repayment information and applies the requested return mode, including the `NO_ZERO` option. The function returns an amount and does not post an installment.
+
 
 **Signature**
 
@@ -2065,14 +1822,6 @@ Function get_Annuity_Amount(p_Doc_No      In Varchar2,
 
 **Returns:** `Number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2086,7 +1835,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates pym startdate information.
+**Description**
+
+Determines the first applicable repayment date from the supplied payment date, preferred payment day, installment interval, account type and loan maturity. The optional closed-plan check influences whether already closed installments are considered. It returns the selected start date for schedule processing.
+
 
 **Signature**
 
@@ -2115,15 +1867,6 @@ Function get_Pym_Startdate(p_Doc_No          In Varchar2,
 
 **Returns:** `Date` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GLBL_TARIH`, `GNI_MESSAGE`, `GLBL_FAIZ`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_TARIH`, `GNI_MESSAGE`, `GLBL_FAIZ` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2137,7 +1880,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates payment date information.
+**Description**
+
+Checks whether the specified date is an applicable payment date for the supplied loan. The function evaluates the loan's repayment schedule or date rules and returns its payment-date indicator. It is a validation lookup and does not record a payment.
+
 
 **Signature**
 
@@ -2155,15 +1901,6 @@ Function is_Payment_Date(p_Document_No In Varchar2, p_Date Date)
 
 **Returns:** `Varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GLBL_TARIH`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_TARIH` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2177,7 +1914,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates schedule from memo information.
+**Description**
+
+Generates a repayment schedule from the selected memorandum using the supplied interest ratio, calculation type and interest amount. The pipelined function reads the memorandum-related terms and returns calculated schedule rows. It does not represent a payment execution or loan account posting.
+
 
 **Signature**
 
@@ -2200,16 +1940,6 @@ function get_schedule_from_memo(p_memorandum_id varchar2,
 
 **Returns:** `SCHEDULE_TT` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `KRD_SCOR_ODEME_PLAN` to obtain operation inputs or existing loan data.
-- Delegates related processing to `GLBL_FAIZ`.
-- Pipelines generated rows to the caller.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `GLBL_FAIZ` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2223,7 +1953,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Produces a standard repayment schedule from loan terms and date rules.
+**Description**
+
+Calculates a standard loan repayment schedule between the supplied start and maturity dates. It considers principal and interest payment dates, payment day, amount, overdue principal, grace periods, day-count convention, working-day handling and optional varying or stopped rates. The pipelined result contains the computed repayment rows without directly committing them as a loan payment plan.
+
 
 **Signature**
 
@@ -2273,15 +2006,6 @@ function get_standart_schedule(p_begin_date          date default glbl.getsysdat
 
 **Returns:** `SCHEDULE_TT` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Generates principal and interest plan rows from payment dates, terms, grace settings, and rate flow inputs.
-- Pipelines the resulting schedule.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2295,7 +2019,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Produces an annuity repayment schedule using supplied loan terms and payment constraints.
+**Description**
+
+Calculates an annuity repayment schedule using the supplied loan dates, principal, interest settings and optional annuity constraints. It accounts for payment-day rules, grace periods, remaining amounts, working-day adjustments and optional mortgage, special-date or changing-rate inputs. The function returns schedule rows through a pipelined result rather than executing the resulting installments.
+
 
 **Signature**
 
@@ -2357,15 +2084,6 @@ function get_annuity_schedule(p_begin_date      date,
 
 **Returns:** `SCHEDULE_TT` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Builds installment data from principal, term, interest convention, grace settings and annuity options.
-- Pipelines calculated repayment rows.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2388,7 +2106,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Determines interest calculation day counts and year basis from calculation conventions.
+**Description**
+
+Determines the day counts used for loan interest calculation. It evaluates the previous calculation date, transaction date, payment day, interest convention, rate type and periodicity, and returns both the calculation-day count and the applicable year-day basis. These outputs support subsequent interest calculations and do not themselves post interest.
+
 
 **Signature**
 
@@ -2416,14 +2137,6 @@ procedure get_interest_calc_info(p_last_calc_date       in date,
 | `p_calc_day_count` | OUT | number value populated by the operation |
 | `p_year_day_count` | OUT | number value populated by the operation |
 
-**Business Logic**
-
-- Reads `LOAN_INT_CALC_TYPES_PR` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2437,7 +2150,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Provides loan int diff operation behavior for loan processing.
+**Description**
+
+Processes the difference between a loan's calculated interest and the related planned or recorded interest amounts. The operation uses the loan, account type, source account, transaction date, EOD/SOD context and supplied interest values to determine the adjustment. It returns the calculated difference through `P_CALC_AMOUNT` and may apply related interest-difference processing according to the transaction mode.
+
 
 **Signature**
 
@@ -2475,16 +2191,6 @@ procedure loan_int_diff_operation(p_trn_date        in date,
 | `p_int_amount` | IN | Supplied `p_int_amount` input (number) |
 | `p_calc_amount` | OUT | number value populated by the operation |
 
-**Business Logic**
-
-- Reads `LOAN_INT_CALCULATION_DIFF_HISTORY` to obtain operation inputs or existing loan data.
-- Changes `LOAN_INT_CALCULATION_DIFF_HISTORY` as part of the operation.
-
-**Business Rules**
-
-- original_amount or residual_amount or calc_amount or sum_residual_amount or p_plan_int_amount or p_int_amount is negative
-- Operation type must be INS, OPEN, CLOSE!
-
 **Dependencies:** `GLBL` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2498,7 +2204,10 @@ procedure loan_int_diff_operation(p_trn_date        in date,
 
 **Type:** Procedure
 
-**Purpose:** Calculates loan interest for eligible loans and configured processing dates.
+**Description**
+
+Runs loan interest calculation for the selected loan or branch range on the specified processing date and EOD/SOD phase. It selects eligible active contracts using loan and product configuration, applies the interest calculation basis and relevant accrual settings, and processes the resulting interest amounts through related loan/account operations. Product configuration and completion of required processing stages are validated before subsequent calculation steps.
+
 
 **Signature**
 
@@ -2520,18 +2229,6 @@ procedure do_int_calculation(p_min_id  number default 0,
 | `p_eod_sod` | IN | EOD/SOD processing selector |
 | `p_date` | IN | Effective/processing date |
 
-**Business Logic**
-
-- Selects eligible loan records for the given branch range, document and processing date.
-- Applies configured loan interest conventions, account balances, and permitted stop/rate information.
-- Processes interest results and operational exception handling for the EOD/SOD run.
-
-**Business Rules**
-
-- Product code not found in pkrd_turkod_pr table, pls check 22401 app for this loan product!
-- Interest ratio cant be negative:
-- Interest amount cant be negative!
-
 **Dependencies:** `GLBL_TARIH`, `PR`, `GNI_UTILITY`, `LA`, `GLBL_FAIZ` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2545,7 +2242,10 @@ procedure do_int_calculation(p_min_id  number default 0,
 
 **Type:** Procedure
 
-**Purpose:** Performs the commission recognition operation for the supplied inputs.
+**Description**
+
+Processes recognition of loan commissions for the selected contract or eligible set of loans. It uses the supplied date and related commission scheduling information to determine the amounts due for recognition. This batch operation is restricted to the last day of the month, reflecting its month-end accounting purpose.
+
 
 **Signature**
 
@@ -2560,15 +2260,6 @@ Procedure do_commission_recognition(p_doc_no varchar2 default null,
 |---|---|---|
 | `p_doc_no` | IN | Loan document identifier |
 | `Pdate` | IN | Supplied `Pdate` input (Date) |
-
-**Business Logic**
-
-- Reads `KRD_KOM_PLAN_DETAY`, `KRD_TESIS`, `KRD_KOM_EOD` to obtain operation inputs or existing loan data.
-- Changes `KRD_KOM_EOD` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `GLBL_TARIH`, `GLBL_BAKIYE`, `KRD_EOD` · [Dependency register](dependencies.md).
 
@@ -2585,7 +2276,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Determines the penalty calculation base using overdue amounts and applicable offsets.
+**Description**
+
+Calculates the amount used as the basis for loan penalty calculation by combining the supplied overdue balance with eligible overdue interest and applying qualifying guarantee deductions. When interest-on-interest penalty calculation is enabled, the function sums unpaid, open overdue-interest plan entries associated with principal grace-payment records for the same loan and payment date. When guarantee deduction is enabled, it includes only nonzero committed guarantees linked to the loan with fund type `1` and guarantee subtype `C3`. The result is set to zero when the relevant maturity or interest-on-interest condition is met and the overdue amount does not exceed the guarantee plus minimum threshold; otherwise, the qualifying guarantee is deducted. The returned penalty base is never negative.
+
 
 **Signature**
 
@@ -2614,18 +2308,6 @@ function get_amount_for_pen_calc(p_date                    in date,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Combines overdue principal and, when configured, outstanding overdue interest from plan rows.
-- Optionally subtracts qualifying guarantee commitments; applies the overdue minimum and loan-end-date threshold.
-- Returns a nonnegative penalty calculation base.
-
-**Business Rules**
-
-- Negative overdue input/balances are rejected.
-- Where enabled, eligible guarantee commitments reduce the penalty base.
-- The result is clamped to zero and the threshold/loan-end-date conditions are applied.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2639,7 +2321,10 @@ function get_amount_for_pen_calc(p_date                    in date,
 
 **Type:** Function
 
-**Purpose:** Determines the dates applicable to an EOD/SOD interest calculation.
+**Description**
+
+Returns the set of dates on which interest calculation should occur for the supplied last-calculation date and EOD/SOD context. The function uses the configured interest calculation phase to determine eligible processing dates. Unsupported phase or timing parameters are rejected instead of producing an arbitrary date sequence.
+
 
 **Signature**
 
@@ -2660,16 +2345,6 @@ function get_interest_calc_dates(p_last_calc_access_date in date,
 
 **Returns:** `loan_api.g_date_tab_type` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Delegates related processing to `GLBL_TARIH`.
-
-**Business Rules**
-
-- p_int_calc_at param should be EOD or SOD!!
-- P_EOD_SOD param should be E - EOD or S - SOD!!
-- Interest calculation should be done at EOD or SOD!!
-
 **Dependencies:** `GLBL_TARIH` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2683,7 +2358,10 @@ function get_interest_calc_dates(p_last_calc_access_date in date,
 
 **Type:** Function
 
-**Purpose:** Determines interest processing dates for the supplied date and EOD/SOD context.
+**Description**
+
+Determines interest calculation dates using the supplied reference date, EOD/SOD phase and interest-calculation timing. The function applies the corresponding phase rules and returns the calculated date collection. Invalid EOD/SOD or calculation-timing values are treated as parameter errors.
+
 
 **Signature**
 
@@ -2704,16 +2382,6 @@ function get_interest_calc_dates_ex(p_date        in date,
 
 **Returns:** `g_date_tab_type` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Delegates related processing to `GLBL_TARIH`.
-
-**Business Rules**
-
-- p_int_calc_at param should be EOD or SOD!!
-- P_EOD_SOD param should be E - EOD or S - SOD!!
-- Interest calculation should be done at EOD or SOD!!
-
 **Dependencies:** `GLBL_TARIH` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2727,7 +2395,10 @@ function get_interest_calc_dates_ex(p_date        in date,
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates basyear days cnt information.
+**Description**
+
+Returns the annual day-count denominator required for the requested interest calculation convention and date. It accounts for the selected basis and calendar context where applicable. The result supports interest-rate prorating rather than changing the underlying loan rate.
+
 
 **Signature**
 
@@ -2745,14 +2416,6 @@ function get_basis_year_days_cnt(p_int_calc_type in varchar2,
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_INT_CALC_TYPES_PR` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2766,7 +2429,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates delay int rate information.
+**Description**
+
+Retrieves the applicable delayed-interest rate for a specified loan and delay category. It reads loan settings from `KRD_TEKLIF_DETAY` and selects the rate associated with the requested delay type. The return value is a rate, not a calculated overdue amount.
+
 
 **Signature**
 
@@ -2784,14 +2450,6 @@ Function Get_Delay_Int_Rate(p_Loan_Id    In Varchar2,
 
 **Returns:** `Number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2805,7 +2463,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Determines the penalty calculation base using overdue amounts and applicable offsets.
+**Description**
+
+Calculates overdue amounts relevant to penalty assessment for the specified loan and date, with optional special-day treatment. The function considers outstanding overdue principal and interest and applies the requested interest calculation convention when day-weighted processing is needed. The `P_FOR_SPEC_DAYS` flag controls how special-day periods are handled and must be `Y` or `N`; this overload does not accept the guarantee-offset parameters of overload 1.
+
 
 **Signature**
 
@@ -2828,16 +2489,6 @@ Function get_amount_for_pen_calc(p_doc_no        In Varchar2,
 
 **Returns:** `Number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Combines overdue principal and, when configured, outstanding overdue interest from plan rows.
-- Optionally subtracts qualifying guarantee commitments; applies the overdue minimum and loan-end-date threshold.
-- Returns a nonnegative penalty calculation base.
-
-**Business Rules**
-
-- p_for_spec_days must be Y or N!
-
 **Dependencies:** `GLBL_FAIZ` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -2851,7 +2502,10 @@ Function get_amount_for_pen_calc(p_doc_no        In Varchar2,
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates flow ratio info information.
+**Description**
+
+Retrieves time-dependent interest flow-rate information for the specified loan as of the requested date. The function reads matching records from `LOAN_FLOW_RATIO_INFO`, taking their effective periods into account. The full-information flag controls the level of rate detail returned in the `LOAN_FLOW_RATE_TAB` collection.
+
 
 **Signature**
 
@@ -2872,14 +2526,6 @@ FUNCTION get_flow_ratio_info(p_doc_no    VARCHAR2,
 
 **Returns:** `LOAN_FLOW_RATE_TAB` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_FLOW_RATIO_INFO` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2893,7 +2539,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates stop ratio info information.
+**Description**
+
+Retrieves loan rate-stoppage or suspension information applicable to the specified contract and date. It reads relevant intervals from `LOAN_STOP_RATIO_INFO`, with information type and full-detail parameters controlling the result. The function returns the selected stop-rate records as a `LOAN_STOP_RATE_TAB` collection.
+
 
 **Signature**
 
@@ -2916,14 +2565,6 @@ FUNCTION get_stop_ratio_info(p_doc_no    VARCHAR2,
 
 **Returns:** `LOAN_STOP_RATE_TAB` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_STOP_RATIO_INFO` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2937,7 +2578,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates incorrect days information.
+**Description**
+
+Returns the dates or day identifiers treated as incorrect under the package's calendar rules for the supplied date. The pipelined function produces a row set that can be consumed by SQL. It is used for date/calendar evaluation and does not modify the loan account.
+
 
 **Signature**
 
@@ -2954,14 +2598,6 @@ function get_incorrect_days(p_date date) return NUMBER_TT
 
 **Returns:** `NUMBER_TT` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -2975,7 +2611,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates incorrect days count information.
+**Description**
+
+Counts the dates identified as incorrect by the package's calendar/day-validation logic for the supplied date. The function returns a numeric count and does not modify loan or payment-plan data.
+
 
 **Signature**
 
@@ -2990,14 +2629,6 @@ function get_incorrect_days_count(p_date date) return number;
 | `p_date` | IN | Effective/processing date |
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -3021,7 +2652,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Processes overdue balance transitions for loans meeting overdue criteria.
+**Description**
+
+Processes overdue transitions for loans matching the requested branch range, optional document number and processing date. It identifies eligible loan installments and overdue balances using repayment-plan records, overdue grace periods and product settings, excluding contracts outside the processing scope. The procedure determines the required overdue movement and updates the related accounts or loan records through the appropriate processing services.
+
 
 **Signature**
 
@@ -3041,15 +2675,6 @@ Procedure do_overdue_transit_operation(p_min_id number default null,
 | `p_doc_no` | IN | Loan document identifier |
 | `p_date` | IN | Effective/processing date |
 
-**Business Logic**
-
-- Finds overdue transit candidates using outstanding plan amounts and overdue settings.
-- Determines the required overdue movement and processes account/plan adjustments.
-
-**Business Rules**
-
-- Loan product code not found in pkrd_turkod_pr table!
-
 **Dependencies:** `GNI_UTILITY`, `CL`, `CR`, `LOAN_REPORT_API` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3065,7 +2690,10 @@ Procedure do_overdue_transit_operation(p_min_id number default null,
 
 **Type:** Function
 
-**Purpose:** Determines the overdue-transit action from loan, schedule, grace-period, and balance conditions.
+**Description**
+
+Determines which overdue-transfer operation applies to a loan installment. It evaluates the account-type group, installment date, overdue grace days, outstanding and overdue balances, loan status and maturity date. The configured grace-day type and plan type also influence whether the installment should move into or out of overdue processing; the function returns the selected operation code.
+
 
 **Signature**
 
@@ -3104,15 +2732,6 @@ function get_ovd_trs_oper_type(p_date               in date,
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Evaluates overdue age, grace period, balances, status and loan maturity.
-- Returns the operation type applicable to overdue transit processing.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3126,7 +2745,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates ovd date information.
+**Description**
+
+Determines the overdue date associated with a loan and account type as of the supplied reference date. It examines loan, account and repayment-plan data, including tranche processing where applicable. The calculation mode selects normal reporting behavior or the date interpretation used for penalty calculation.
+
 
 **Signature**
 
@@ -3149,15 +2771,6 @@ Function get_ovd_date(p_doc_no   varchar2,
 
 **Returns:** `date` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY`, `GAIA.CS_ACCOUNT`, `LOAN_PAYMENT_PLAN`, `CS_ACCOUNT` to obtain operation inputs or existing loan data.
-- Delegates related processing to `LOAN_TRANCHE_API`.
-
-**Business Rules**
-
-- p_calc_mode should be FOR_PEN_CALC - for penalty calculation, DEFAULT-for reporting
-
 **Dependencies:** `LOAN_TRANCHE_API` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3171,7 +2784,10 @@ Function get_ovd_date(p_doc_no   varchar2,
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates ovd date old information.
+**Description**
+
+Calculates an overdue date using the earlier implementation of the loan overdue-date rules. It selects matching loan, account and payment-plan records and applies the requested reporting or penalty-calculation mode. This legacy function is retained separately from `get_ovd_date` and should not be assumed to apply identical logic.
+
 
 **Signature**
 
@@ -3192,15 +2808,6 @@ Function get_ovd_date_old(p_doc_no   varchar2,
 | `p_calc_mode` | IN | Supplied `p_calc_mode` input (varchar2) |
 
 **Returns:** `date` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY`, `LOAN_PAYMENT_PLAN`, `CS_ACCOUNT` to obtain operation inputs or existing loan data.
-- Delegates related processing to `LOAN_TRANCHE_API`.
-
-**Business Rules**
-
-- p_calc_mode should be FOR_PEN_CALC - for penalty calculation, DEFAULT-for reporting
 
 **Dependencies:** `LOAN_TRANCHE_API` · [Dependency register](dependencies.md).
 
@@ -3224,7 +2831,10 @@ Function get_ovd_date_old(p_doc_no   varchar2,
 
 **Type:** Procedure
 
-**Purpose:** Evaluates and adjusts the available credit-line limit using loan and account information.
+**Description**
+
+Reconciles recorded credit-line limits with the amount available under each eligible contract. It selects active, non-deleted line/card loan records in the branch range and optional document scope, then compares the recorded limit-account balance with the offered limit adjusted for increases, decreases and outstanding principal. Principal is derived from tranche history for non-revolving lines or account balances for other lines. An active loan category `667` or passed maturity date makes the calculated available limit zero. For a difference, the procedure determines debit and credit directions, posts journal entries and records limit-evaluation history.
+
 
 **Signature**
 
@@ -3244,18 +2854,6 @@ procedure evaluate_limit_amount(p_min_id        number default 0,
 | `p_doc_no` | IN | Loan document identifier |
 | `p_caller_tx_fid` | IN | Optional originating transaction identifier |
 
-**Business Logic**
-
-- Calculates available limits from offered amounts, limit increases/decreases, and outstanding main amount.
-- Uses loan-history tranche principal for non-revolving lines and mapped account balances for other lines.
-- Posts the resulting limit difference in the appropriate debit/credit direction and records limit-evaluation history.
-
-**Business Rules**
-
-- Only eligible open credit-line/card loan records are examined.
-- A category `667` record or an elapsed end date produces a zero computed limit.
-- The limit difference determines posting direction; caller and document inputs affect commit behavior.
-
 **Dependencies:** `LOAN_REPORT_API`, `GLBL_HESAP` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3269,7 +2867,10 @@ procedure evaluate_limit_amount(p_min_id        number default 0,
 
 **Type:** Procedure
 
-**Purpose:** Performs the create tranche operation for the supplied inputs.
+**Description**
+
+Creates or removes a credit tranche for the specified loan contract according to `P_TRN_TYPE`. It finds the matching loan details in `KRD_TEKLIF_DETAY` and uses tranche-related services and transaction information to process the amount, tranche type and term. The transaction identifier is an `IN OUT` parameter, allowing the caller to receive or reuse the related transaction context.
+
 
 **Signature**
 
@@ -3295,15 +2896,6 @@ procedure do_create_tranche(p_contract_no    varchar2,
 | `p_trn_type` | IN | Transaction direction/type selector |
 | `p_tx_fid` | IN OUT | Transaction identifier |
 
-**Business Logic**
-
-- Reads `KRD_TEKLIF_DETAY`, `GLBL_TRANSACTION` to obtain operation inputs or existing loan data.
-- Delegates related processing to `LOAN_TRANCHE_API`, `APEX_KRD2204_0_API_P`, `KRD2204_0_API`.
-
-**Business Rules**
-
-- p_trn_type should be CREATE - for create, DELETE - for delete
-
 **Dependencies:** `LOAN_TRANCHE_API`, `APEX_KRD2204_0_API_P`, `KRD2204_0_API` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3317,7 +2909,10 @@ procedure do_create_tranche(p_contract_no    varchar2,
 
 **Type:** Procedure
 
-**Purpose:** Creates or processes overdraft records for the selected customers or branch range.
+**Description**
+
+Processes overdraft creation or closure for selected customers and branch ranges. It retrieves the relevant customer, loan and card/account information within the supplied scope and performs the requested `CREATE_OVERDRAFT` or `CLOSE_LOAN` action. The procedure may create or update overdraft-related records and linked accounts as part of the selected operation.
+
 
 **Signature**
 
@@ -3337,15 +2932,6 @@ procedure create_overdrafts(p_customer in number default null,
 | `p_max_id` | IN | Supplied `p_max_id` input (number) |
 | `p_oper_type` | IN | Operation type selector |
 
-**Business Logic**
-
-- Selects customer/card/loan information for overdraft handling within the requested branch or customer scope.
-- Performs the selected overdraft operation and related account updates.
-
-**Business Rules**
-
-- p_oper_type should be CREATE_OVERDRAFT or CLOSE_LOAN
-
 **Dependencies:** `GLBL_HESAP`, `API_VISTA` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3361,7 +2947,10 @@ procedure create_overdrafts(p_customer in number default null,
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates new ov cont no information.
+**Description**
+
+Obtains a new overdraft contract identifier for the specified branch, customer and account. It verifies matching customer and account information in the banking account and loan records before constructing or retrieving the identifier. Missing or inconsistent customer/account information is reported as an application error.
+
 
 **Signature**
 
@@ -3380,14 +2969,6 @@ function get_new_ov_cont_no(p_branch_no in number,
 | `p_acc` | IN | Supplied `p_acc` input (number) |
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Reads `CS_ACCOUNT`, `KRD_TEKLIF_DETAY` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -3411,7 +2992,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Provides table log operation behavior for loan processing.
+**Description**
+
+Creates or restores transaction-specific snapshots for supported loan tables. In `LOGGING` mode it records the relevant table data against the loan document and transaction identifier; in `RESTORING` mode it applies stored log information to restore data. Only the explicitly supported tables and the `LOGGING`/`RESTORING` modes are accepted.
+
 
 **Signature**
 
@@ -3431,16 +3015,6 @@ procedure table_log_operation(p_doc_no     in varchar2,
 | `p_tx_fid` | IN | Transaction identifier |
 | `p_oper_type` | IN | Operation type selector |
 
-**Business Logic**
-
-- Reads `LOAN_PAYMENT_PLAN`, `LOAN_PAYMENT_PLAN_LOG`, `LOAN_FLOW_RATIO_INFO`, `LOAN_FLOW_RATIO_INFO_LOG` to obtain operation inputs or existing loan data.
-- Changes `OPERATIONS.`, `LOAN_PAYMENT_PLAN_LOG`, `LOAN_PAYMENT_PLAN`, `LOAN_FLOW_RATIO_INFO_LOG` as part of the operation.
-
-**Business Rules**
-
-- Oper type should be LOGGING-for logging or RESTORING-for restoring
-- Table name should be [LOAN_PAYMENT_PLAN],[LOAN_FLOW_RATIO_INFO],[LOAN_STOP_RATIO_INFO],[LOAN_CATEGORY],[KRD_KOM_PLAN_DETAY]
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3454,7 +3028,10 @@ procedure table_log_operation(p_doc_no     in varchar2,
 
 **Type:** Procedure
 
-**Purpose:** Creates or posts debit and credit accounting entries for a loan transaction.
+**Description**
+
+Creates or posts debit and credit journal entries for the supplied transaction. It uses the provided entry collection, transaction caller and `CREATE` or `POST` mode to select the required accounting processing path. The transaction identifier is an `IN OUT` parameter, allowing the operation to associate generated or existing transaction data with the journal posting.
+
 
 **Signature**
 
@@ -3476,15 +3053,6 @@ Procedure do_journal_entry(p_entries_list  g_entries_list_tab,
 | `p_trn_type` | IN | Transaction direction/type selector |
 | `p_is_eod` | IN | Supplied `p_is_eod` input (varchar2) |
 
-**Business Logic**
-
-- Processes the supplied debit/credit entry records using transaction caller and transaction type inputs.
-- Hands off accounting entry persistence to the internal journal services; the caller transaction ID is an IN OUT value.
-
-**Business Rules**
-
-- p_trn_type must be CREATE or POST!
-
 **Dependencies:** `TRN_BROKER`, `GLBL_FUNCTIONS`, `GLBL_HESAP`, `PA_API#`, `MM_ACCOUNTING#` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3498,7 +3066,10 @@ Procedure do_journal_entry(p_entries_list  g_entries_list_tab,
 
 **Type:** Procedure
 
-**Purpose:** Constructs journal entries for a configured loan operation.
+**Description**
+
+Builds accounting journal entries for a configured loan operation and transaction. It resolves the operation definition from `LOAN_OPERATION_DESC`, selects the applicable voucher configuration in `LOAN_OPERATION_VOUCHER` and uses the associated query or mapping to assemble journal data. Missing, duplicate or invalid voucher configuration prevents reliable entry generation.
+
 
 **Signature**
 
@@ -3516,14 +3087,6 @@ procedure create_journal_entries(p_oper_type in varchar2,
 | `p_tx_fid` | IN | Transaction identifier |
 | `p_trn_type` | IN | Transaction direction/type selector |
 
-**Business Logic**
-
-- Reads `LOAN_OPERATION_DESC`, `LOAN_OPERATION_VOUCHER`, `SS_MUH1201_0_LOG` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3537,7 +3100,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the journal control operation for the supplied inputs.
+**Description**
+
+Checks journal or account totals for the specified branch, customer and subaccount. It retrieves relevant account information from `CS_ACCOUNT` and validates the monetary components used in the journal-control calculation, including principal and interest totals. Negative amounts in the controlled components are reported instead of being treated as valid posting values.
+
 
 **Signature**
 
@@ -3555,14 +3121,6 @@ procedure do_journal_control(p_branch_id   IN Number,
 | `p_customer_no` | IN | Customer identifier |
 | `p_account_sub` | IN | Supplied `p_account_sub` input (Number) |
 
-**Business Logic**
-
-- Reads `CS_ACCOUNT` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3578,7 +3136,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Resolves the transaction caller identifier configured for an operation type.
+**Description**
+
+Retrieves the transaction caller identifier associated with the specified loan operation type from `LOAN_OPERATION_DESC`. The lookup matches the requested operation type and returns its configured caller value. An application error is reported if the operation has no matching configuration.
+
 
 **Signature**
 
@@ -3594,14 +3155,6 @@ function get_trn_caller_id(p_oper_type in varchar2) return number;
 
 **Returns:** `number` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Looks up the transaction caller identifier in `LOAN_OPERATION_DESC` for the specified operation type.
-
-**Business Rules**
-
-- The requested operation type must have a matching configuration entry; missing configuration is reported through `R(...)`.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3615,7 +3168,10 @@ function get_trn_caller_id(p_oper_type in varchar2) return number;
 
 **Type:** Function
 
-**Purpose:** Executes a configured voucher query and organizes returned columns by result grouping.
+**Description**
+
+Executes the supplied SQL query and converts its result into structured voucher column data. The function supports `SINGLE_ROW` and `MULTI_ROW` result modes and, where grouping is required, expects a non-null `GROUP_CODE` column. The returned `G_COL_VALUE_TAB_MAP` preserves voucher column names and values for downstream journal processing.
+
 
 **Signature**
 
@@ -3634,15 +3190,6 @@ function get_voucher_data_from_query(p_query       in varchar2,
 
 **Returns:** `g_col_value_tab_map` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-- p_result_type should be SINGLE_ROW or MULTI_ROW!
-- GROUP_CODE field is not defined in query or GROUP_CODE field is null!
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3656,7 +3203,10 @@ function get_voucher_data_from_query(p_query       in varchar2,
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates gl value information.
+**Description**
+
+Returns the configured value for a named global loan parameter. The function looks up the requested parameter in `LOAN_GLOBAL_PARAMETERS_PR` and retrieves the matching stored setting. A missing or ambiguous parameter configuration is reported instead of returning an unrelated value.
+
 
 **Signature**
 
@@ -3671,14 +3221,6 @@ function get_gl_value(p_parameter_name in varchar2) return varchar2;
 | `p_parameter_name` | IN | Supplied `p_parameter_name` input (varchar2) |
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Reads `LOAN_GLOBAL_PARAMETERS_PR` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -3702,7 +3244,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the clear addtional data operation for the supplied inputs.
+**Description**
+
+Resets or changes the state of the package-level collection used for additional loan transaction data. The optional state parameter controls how the pending information is cleared or prepared for a subsequent operation. This routine manages in-memory update metadata rather than directly updating a repayment schedule.
+
 
 **Signature**
 
@@ -3715,14 +3260,6 @@ procedure clear_addtional_data(p_state varchar2 default 'CLEAR');
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `p_state` | IN | Supplied `p_state` input (varchar2) |
-
-**Business Logic**
-
-- Delegates related processing to `RUHA3H`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `RUHA3H` · [Dependency register](dependencies.md).
 
@@ -3737,7 +3274,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the add additional group operation for the supplied inputs.
+**Description**
+
+Starts a named group within the additional-information structure used for loan transaction history. The optional tag identifies the group under which subsequent values are collected. It prepares metadata for later history or mapped-update processing rather than posting a financial transaction.
+
 
 **Signature**
 
@@ -3750,14 +3290,6 @@ procedure add_additional_group(p_tag_name varchar2 default null);
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `p_tag_name` | IN | Supplied `p_tag_name` input (varchar2) |
-
-**Business Logic**
-
-- Delegates related processing to `RUHA3H`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `RUHA3H` · [Dependency register](dependencies.md).
 
@@ -3772,7 +3304,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the add additional info operation for the supplied inputs.
+**Description**
+
+Adds a string-valued tag to the pending transaction additional-information collection. The tag name and text value are retained for subsequent serialization, history recording or related mapped-update processing. This overload accepts `VARCHAR2` data and does not itself perform loan payment allocation.
+
 
 **Signature**
 
@@ -3787,15 +3322,6 @@ procedure add_additional_info(p_tag_name varchar2, p_value varchar2);
 | `p_tag_name` | IN | Supplied `p_tag_name` input (varchar2) |
 | `p_value` | IN | Supplied `p_value` input (varchar2) |
 
-**Business Logic**
-
-- Changes `OPERATIONS.` as part of the operation.
-- Delegates related processing to `RUHA3H`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `RUHA3H` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3809,7 +3335,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the add additional info operation for the supplied inputs.
+**Description**
+
+Adds a date-valued tag to the pending transaction additional-information collection. It records the tag and date using the package's date representation so they can be included with subsequent transaction history. This overload differs from the string-valued variant in the type and formatting of its value.
+
 
 **Signature**
 
@@ -3824,14 +3353,6 @@ procedure add_additional_info(p_tag_name varchar2, p_value date);
 | `p_tag_name` | IN | Supplied `p_tag_name` input (varchar2) |
 | `p_value` | IN | Supplied `p_value` input (date) |
 
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -3845,7 +3366,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the add column update operation for the supplied inputs.
+**Description**
+
+Registers a proposed change to a mapped loan field with its old and new string values. The routine resolves the tag against `LOAN_HISTORY_MAPPING` and, where applicable, tranche information, so the change can later be applied and reversed. It prepares update metadata rather than independently executing the full mapped-update transaction.
+
 
 **Signature**
 
@@ -3865,15 +3389,6 @@ procedure add_column_update(p_tag_name   varchar2,
 | `p_new_value` | IN | Supplied `p_new_value` input (varchar2) |
 | `p_tranche_no` | IN | Tranche identifier |
 
-**Business Logic**
-
-- Reads `LOAN_HISTORY_MAPPING`, `LOAN_TRANCHE_INFO` to obtain operation inputs or existing loan data.
-- Changes `OPERATIONS.` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `RUHA3H` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -3887,7 +3402,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the add column update operation for the supplied inputs.
+**Description**
+
+Registers an old and a new date value for a mapped loan field. It uses the same additional-update workflow as the string overload while preserving date semantics for later application and reversal. The optional tranche number identifies tranche-specific changes where relevant.
+
 
 **Signature**
 
@@ -3907,14 +3425,6 @@ procedure add_column_update(p_tag_name   varchar2,
 | `p_new_value` | IN | Supplied `p_new_value` input (date) |
 | `p_tranche_no` | IN | Tranche identifier |
 
-**Business Logic**
-
-- Computes or delegates the result from supplied parameters; no direct database write was identified in this method body.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -3928,7 +3438,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Performs the finalize addtional process operation for the supplied inputs.
+**Description**
+
+Applies the pending mapped field changes collected for a specified loan document and offer identifier. The procedure resolves target fields from the stored mapping metadata and constructs the required updates, including tranche handling where applicable. The resulting transaction metadata is retained for history and possible reversal; dynamic updates require careful authorization and transaction review.
+
 
 **Signature**
 
@@ -3944,14 +3457,6 @@ procedure finalize_addtional_process(p_doc_no   varchar2,
 | `p_doc_no` | IN | Loan document identifier |
 | `p_offer_id` | IN | Supplied `p_offer_id` input (varchar2) |
 
-**Business Logic**
-
-- Delegates related processing to `LOAN_TRANCHE_API`.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** `LOAN_TRANCHE_API` · [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -3965,7 +3470,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Reverses mapped loan field updates using recorded transaction history.
+**Description**
+
+Reverses mapped loan-field changes recorded under a specified transaction identifier. It loads the transaction's additional history information, resolves the corresponding table and column mappings and reconstructs previous values. The procedure applies those prior values through the mapped-update mechanism rather than assuming every change can be reversed by simply deleting a history row.
+
 
 **Signature**
 
@@ -3978,15 +3486,6 @@ procedure reverse_update(p_tx_fid number);
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `p_tx_fid` | IN | Transaction identifier |
-
-**Business Logic**
-
-- Reads change-log information for the transaction and restores previously recorded field values.
-- Uses recorded change metadata to reconstruct reversal operations.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
@@ -4001,7 +3500,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Procedure
 
-**Purpose:** Records the specified loan operation in transaction history.
+**Description**
+
+Records a loan business operation in transaction history with its document number, operation type, date, transaction ID and optional additional information. The procedure resolves the operation configuration and applies the requested history mode (`I`, `U` or `D`). It links the operation to its transaction and preserves related metadata for subsequent reporting or reversal.
+
 
 **Signature**
 
@@ -4025,16 +3527,6 @@ procedure create_loan_history(p_oper_type VARCHAR2 default null,
 | `p_trn_type` | IN | Transaction direction/type selector |
 | `p_add_info` | IN | Supplied `p_add_info` input (add_info_tab) |
 
-**Business Logic**
-
-- Resolves the requested loan operation and writes transaction-linked loan history details.
-- Captures operation attributes and available additional information associated with the transaction.
-
-**Business Rules**
-
-- p_app_oper_code not found in loan_operation_desc table!
-- p_trn_type must be I-insert, U-update, D-delete
-
 **Dependencies:** `TRN_BROKER` · [Dependency register](dependencies.md).
 
 **Errors:** [Verified business/error conditions](error-handling.md).
@@ -4048,7 +3540,10 @@ procedure create_loan_history(p_oper_type VARCHAR2 default null,
 
 **Type:** Procedure
 
-**Purpose:** Updates stored loan operation history using existing transaction information.
+**Description**
+
+Updates an existing loan-history record using the supplied transaction identifier. It retrieves the corresponding operation history, accounting journal information, account details and operation description to refresh relevant recorded attributes. The transaction must exist and identify an unambiguous history record before the update can complete.
+
 
 **Signature**
 
@@ -4061,15 +3556,6 @@ procedure update_loan_history(p_tx_fid number);
 | Parameter | Mode | Meaning |
 |---|---|---|
 | `p_tx_fid` | IN | Transaction identifier |
-
-**Business Logic**
-
-- Reads `LOAN_OPERATION_HISTORY`, `GL_JOURNAL_LINES`, `CS_ACCOUNT`, `LOAN_OPERATION_DESC` to obtain operation inputs or existing loan data.
-- Changes `LOAN_OPERATION_HISTORY` as part of the operation.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** `LOAN_TRANCHE_API` · [Dependency register](dependencies.md).
 
@@ -4086,7 +3572,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates additional info information.
+**Description**
+
+Retrieves a stored additional-information value from the loan operation history for a specified transaction and tag. It reads the transaction's recorded metadata and extracts the value associated with the requested tag name. The function returns the stored text value without changing the history record.
+
 
 **Signature**
 
@@ -4104,14 +3593,6 @@ function get_additional_info(p_Tx_fid number, p_tag_name varchar2)
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
 
-**Business Logic**
-
-- Reads `LOAN_OPERATION_HISTORY` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
-
 **Dependencies:** [Dependency register](dependencies.md).
 
 **Errors:** No explicit business error identified; see [Error Handling](error-handling.md).
@@ -4125,7 +3606,10 @@ No explicit business-specific rules identified in the supplied source.
 
 **Type:** Function
 
-**Purpose:** Retrieves or evaluates online offer information.
+**Description**
+
+Determines whether the specified memorandum corresponds to an online loan offer. It looks up the memorandum-related record in `KRD_SCOR_MAIN` and evaluates the stored offer classification. The result is an indicator used by callers to distinguish online offers from other offer types.
+
 
 **Signature**
 
@@ -4140,14 +3624,6 @@ function is_online_offer(p_memorandum_id varchar2) return varchar2;
 | `p_memorandum_id` | IN | Supplied `p_memorandum_id` input (varchar2) |
 
 **Returns:** `varchar2` result; interpretation follows the documented purpose and source processing.
-
-**Business Logic**
-
-- Reads `KRD_SCOR_MAIN` to obtain operation inputs or existing loan data.
-
-**Business Rules**
-
-No explicit business-specific rules identified in the supplied source.
 
 **Dependencies:** [Dependency register](dependencies.md).
 
