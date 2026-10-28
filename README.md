@@ -28,10 +28,10 @@ It is not a single-screen controller. Multiple banking operations and supporting
 
 | Document | Why open it |
 |---|---|
-| [API Reference](docs/api.md) | Find public methods, exact signatures, parameters, business logic, rules and errors |
 | [Workflows](docs/workflows.md) | Understand the package's major capabilities through high-level visual diagrams |
 | [Data Model](docs/data-model.md) | Review important loan tables, verified access types, and method relationships |
 | [Dependencies](docs/dependencies.md) | Find relevant packages, integration calls and configuration dependencies |
+| [API Reference](docs/api.md) | Find public methods, exact signatures, parameters, business logic, rules and errors |
 | [Error Handling](docs/error-handling.md) | Understand selected application validation, configuration and processing failures |
 
 ## Functional map
@@ -70,13 +70,6 @@ flowchart TD
 
 The [Workflows page](docs/workflows.md) shows the earlier broad, cross-cutting diagrams for account creation, EOD/SOD processing and history/reversal.
 
-## Developer navigation
-
-**New to the package?** Read the [Documentation Home](docs/index.md), choose a functional domain, and follow its methods in the [API Reference](docs/api.md).
-
-**Investigating an incident?** Locate the public method, review its [Error Handling](docs/error-handling.md), then inspect related [Dependencies](docs/dependencies.md) and [Data Model](docs/data-model.md) entries. Not every possible runtime error is catalogued.
-
-**Preparing a code change?** Check the public signature, any `IN OUT` parameters, EOD/SOD assumptions, history effects and explicit transaction behavior. Source-observed joins do not prove schema foreign keys, and called packages may have additional effects.
 
 ## Scope and review notes
 
