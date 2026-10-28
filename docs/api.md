@@ -216,8 +216,9 @@ procedure do_delete_operation(p_tx_fid       number,
 
 **Description**
 
-Runs repayment-plan control for a specified loan as of the requested processing date. It checks relevant loan-control exceptions from `LOAN_EOD_CONTROL_EXP` before evaluating the plan. The procedure is intended to support loan-processing checks rather than generate a new repayment schedule.
+Validates the repayment schedule of the specified loan for the requested processing date. Before running plan validation, the procedure checks `LOAN_EOD_CONTROL_EXP` for an exception matching the loan document number. If a matching exception exists, it exits without evaluating the plan.
 
+For loans not excluded from control, it calls `get_plan_error` to evaluate the repayment schedule as of the selected date. A nonempty error result is raised as an application error; otherwise the procedure finishes without updating the plan. This is a validation gate, not a schedule-generation routine.
 
 **Signature**
 
@@ -384,8 +385,9 @@ Procedure init_global_variables(p_doc_no varchar2,
 
 **Description**
 
-Determines a configured return amount for the supplied operation and account type from `LOAN_AMOUNT_RANGE_INFO`. It searches for a range containing the requested amount and considers the tranche type when that configuration is applicable. The selected row determines the returned amount; missing or overlapping matching configurations are treated as configuration errors.
+Determines a configured amount from `LOAN_AMOUNT_RANGE_INFO` for the requested loan operation, account type and transaction amount. The selection matches `OPER_TYPE` and `ACC_TYPE`, requires the amount to fall within the configured `MIN_AMOUNT` and `MAX_AMOUNT` bounds, and considers the tranche type where the configuration either permits a NULL value or matches the supplied type.
 
+When exactly one configuration matches, the function returns its `RETURN_AMOUNT`, treating a NULL result as zero. No matching range or overlapping matching ranges are treated as configuration errors. The function resolves a configured value; it does not post a payment.
 
 **Signature**
 
@@ -422,8 +424,9 @@ function get_amount_by_range(p_oper_type    in varchar2,
 
 **Description**
 
-Retrieves a requested amount category for a specified loan, optionally evaluated for a processing date and operation type. It uses loan-linked account data in `CS_ACCOUNT` and relevant account/operation selections to obtain the applicable amount. The result depends on the requested amount category, so it is not necessarily the total outstanding loan balance.
+Calculates a loan amount for the selected document, date and amount category (`TOTAL`, `DEBT` or `DUE`). It joins the loan's linked `CS_ACCOUNT` records with account-type and payment-allocation configuration and evaluates accounts with a nonzero balance. When an operation type is supplied, the matching allocation configuration controls which account types participate.
 
+For `TOTAL`, it sums eligible account balances. For `DEBT`, it restricts the sum to the configured payable accounts. For `DUE`, it calculates the amount to collect using the account's allocation method: balance-based entries use the current eligible balance, whereas schedule-based entries use the relevant payment-plan amount for the requested date. The function therefore distinguishes the loan's total amount, collectible debt and current scheduled amount rather than returning the same balance for every request.
 
 **Signature**
 
@@ -505,8 +508,9 @@ Function get_offer_id(p_branch_id In Number Default Glbl.Getsube,
 
 **Description**
 
-Creates the required loan-linked banking accounts for a loan document and operation type. The procedure reads contract details, facility information, account-type settings and interest-day configuration to determine which account records are needed. It creates or associates the accounts, updates the relevant loan/facility references and returns the created account details in `P_CREATED_ACC`.
+Creates or links the loan-related bank accounts required for the specified document and operation type. The procedure retrieves the loan's offer and facility details together with account-type mappings, product settings and account creation parameters to identify the required accounts.
 
+The account-selection cursors evaluate configuration applicable to the requested operation and loan characteristics; conditional creation rules determine whether a particular account should be generated. Existing loan account references and relevant account settings are checked before new accounts are requested from the supporting account service. The procedure applies generated account identifiers to the corresponding loan or facility records as appropriate and returns the created-account collection through `P_CREATED_ACC`. Not every configured account type necessarily results in a new account for every operation.
 
 **Signature**
 
@@ -735,8 +739,9 @@ function get_gl_acc_active_passive(p_acc_no in varchar2) return varchar2 result_
 
 **Description**
 
-Resolves the general-ledger account from a configured mapping matrix. The matching rules consider the supplied loan product, customer type, period, currency, base-account category and account type, optionally using the loan document to obtain additional context. The function returns the matching account only when the configuration resolves unambiguously.
+Resolves a general-ledger account from configured mapping records using the requested base type and loan account type. Where supplied, product code, customer type, term/period and currency are used to narrow or qualify the matching configuration; a loan document can provide additional context for the selection.
 
+The lookup is intended to return a single applicable account rather than choose arbitrarily among possible configurations. It validates account-type eligibility and reports missing or multiple matching mapping rows. The returned GL account is subsequently used by account-creation or accounting operations; this function itself does not post journal entries.
 
 **Signature**
 
@@ -922,8 +927,9 @@ function get_acc_type_by_status(p_acc_type         varchar2,
 
 **Description**
 
-Updates the scheduled interest amount for a specified loan, payment date and account type in either a standard or tranche-based repayment plan. It first checks `LOAN_ACC_TYPES_PR` for an enabled payment-plan account type and proceeds only for the `INT` group. It retrieves the corresponding principal installment from the tranche and standard plans, matching document, payment date, account type and tranche where applicable. If schedule-update type `3` has no remaining principal payment, the procedure exits without changing the plan. Otherwise, it logs the affected plan and updates `LOAN_PAYMENT_PLAN` or `LOAN_TRANCHE_PAYMENT_PLAN`, taking paid amounts and outstanding earlier open installments into account. Grace-payment rows retain their scheduled amount.
+Updates the interest installment amount for a loan and payment date in either the standard or tranche-specific schedule. It first resolves `P_ACC_TYPE` from `LOAN_ACC_TYPES_PR`, requiring payment-plan eligibility and the interest account group `INT`. It then finds the corresponding principal schedule using the loan document, date and mapped principal account type; the tranche query also matches the supplied tranche number.
 
+If that principal row has schedule-update type `3` and no remaining payment amount, the routine returns without changing interest. Otherwise `P_WITH_TRANCHE_INFO_YN` selects `LOAN_PAYMENT_PLAN` (`N`) or `LOAN_TRANCHE_PAYMENT_PLAN` (`Y`). Before modification, the appropriate plan-log routine is called. The updated installment amount takes the supplied interest, already paid amount and unpaid amounts of earlier open installments into account, while grace-payment entries retain their existing scheduled amount. Invalid selectors or the absence of an updated plan row produce application errors.
 
 **Signature**
 
@@ -1036,8 +1042,11 @@ procedure add_payment_details(p_doc_no                in varchar2,
 
 **Description**
 
-Executes automatic loan payment processing for the selected loan or processing range in an EOD/SOD context. It selects eligible loan and payment-plan records, excluding configured EOD exceptions, and determines account balances and available payment amounts. The procedure delegates allocation and account operations to banking services, supports plan and off-plan payment modes, and contains transaction commits within its batch processing.
+Executes automatic loan collections within the selected processing range, optionally restricting the batch to one loan document. Processing covers the `LP_PAYMENT` and `PAYMENT` operation paths and can use different payment passes depending on automatic-payment configuration and the optional test parameter.
 
+The loan-selection cursors consider active contracts with automatic payment enabled and a linked payment account with available funds. They exclude configured EOD exceptions, legal-proceeding cases, product `50001` and payment accounts marked with the `NB` account feature. Branch limits, the document filter and applicable payment-operation settings further narrow the eligible records.
+
+For each selected loan, the procedure calculates the collectible amount through `get_loan_amount`, using the scheduled `DUE` or outstanding `DEBT` amount as appropriate. Written-off loans can be processed using `WOFF_PAYMENT`. The candidates are handled using overdue-day, amount and next-payment-date ordering. Before an individual payment is applied, the linked payment account's balance is refreshed because multiple loan contracts may draw from the same account; the procedure then performs the appropriate allocation and payment steps.
 
 **Signature**
 
@@ -1076,8 +1085,9 @@ Procedure do_Auto_Payment(p_min_id     number default null,
 
 **Description**
 
-Retrieves the minimum overdue amount configured for a loan product. The function searches `PKRD_TURKOD_PR` by product code (`URUN_KOD`) and selects `OVERDUE_MIN_AMOUNT_MAIN` for principal (`MAIN`) or `OVERDUE_MIN_AMOUNT_INT` for interest (`INT`). A null or unsupported account-type mapping is treated as zero; a missing product configuration is reported as an application error.
+Retrieves the minimum overdue threshold configured for the selected loan product in `PKRD_TURKOD_PR`. It matches the supplied product code to `URUN_KOD` and chooses the threshold according to the account category: `OVERDUE_MIN_AMOUNT_MAIN` for principal (`MAIN`) and `OVERDUE_MIN_AMOUNT_INT` for interest (`INT`).
 
+A NULL threshold or an unsupported account-type selector is interpreted as zero. When the product configuration cannot be found, the lookup reports an application error. The value is used as a business threshold by subsequent overdue and penalty decisions, not as an amount to be posted.
 
 **Signature**
 
@@ -2206,8 +2216,9 @@ procedure loan_int_diff_operation(p_trn_date        in date,
 
 **Description**
 
-Runs loan interest calculation for the selected loan or branch range on the specified processing date and EOD/SOD phase. It selects eligible active contracts using loan and product configuration, applies the interest calculation basis and relevant accrual settings, and processes the resulting interest amounts through related loan/account operations. Product configuration and completion of required processing stages are validated before subsequent calculation steps.
+Runs interest accrual and related loan interest processing for eligible loans in the supplied branch range or for a specific document, using the requested EOD/SOD phase and calculation date. Its selection queries combine loan details, product settings, account configuration and interest-processing controls to determine which contracts are eligible at that stage.
 
+The procedure works with the last interest calculation date, applicable interest rate and day-count configuration, payment dates, and account balances when preparing calculation periods. Depending on the loan's configuration and processing phase, it calculates the interest amount, handles relevant interest differences or adjustments, and delegates account or plan postings to supporting loan operations. Configured exclusions and checks for missing product settings or incomplete prerequisite processing can prevent a loan from progressing through the next stage. This is a batch operation, not a simple function of principal multiplied by a rate.
 
 **Signature**
 
@@ -2278,8 +2289,11 @@ Procedure do_commission_recognition(p_doc_no varchar2 default null,
 
 **Description**
 
-Calculates the amount used as the basis for loan penalty calculation by combining the supplied overdue balance with eligible overdue interest and applying qualifying guarantee deductions. When interest-on-interest penalty calculation is enabled, the function sums unpaid, open overdue-interest plan entries associated with principal grace-payment records for the same loan and payment date. When guarantee deduction is enabled, it includes only nonzero committed guarantees linked to the loan with fund type `1` and guarantee subtype `C3`. The result is set to zero when the relevant maturity or interest-on-interest condition is met and the overdue amount does not exceed the guarantee plus minimum threshold; otherwise, the qualifying guarantee is deducted. The returned penalty base is never negative.
+Calculates the monetary base for penalty calculation for a specified loan, combining the supplied overdue balance with selected unpaid overdue interest and applying optional guarantee deductions.
 
+When `P_IS_PEN_CALC_ON_INT = 'Y'`, the function sums outstanding interest amounts from open `LOAN_PAYMENT_PLAN` rows in the `OVD_INT` account group. These rows must correspond to principal grace-payment entries of the same loan and payment date; the corresponding principal entry is identified through `LOAN_ACC_TYPES_PR`. A negative supplied overdue balance or calculated interest component is rejected.
+
+If `P_IS_EXCLUDE_COLL_AMOUNT = 'Y'`, it sums nonzero committed guarantees linked to the loan through the guarantee tables, restricted to fund type `1` and guarantee subtype `C3`. It then compares the combined overdue amount against the applicable minimum threshold plus eligible guarantee coverage. Under the specified interest-on-penalty or maturity condition, an amount at or below that combined limit produces a zero base; otherwise eligible guarantees are deducted. The final result cannot be negative.
 
 **Signature**
 
@@ -2692,8 +2706,9 @@ Procedure do_overdue_transit_operation(p_min_id number default null,
 
 **Description**
 
-Determines which overdue-transfer operation applies to a loan installment. It evaluates the account-type group, installment date, overdue grace days, outstanding and overdue balances, loan status and maturity date. The configured grace-day type and plan type also influence whether the installment should move into or out of overdue processing; the function returns the selected operation code.
+Determines whether an installment requires an overdue-related operation, using the supplied account group, due date, grace days, current and overdue balances, maturity date and loan status. The decision logic evaluates whether the installment has passed the applicable grace threshold and whether the remaining amount exceeds the configured minimum.
 
+The grace-day interpretation is influenced by `P_OVERDUE_GRACE_DAYS_TYPE` and `P_PLAN_TYPE`, so principal and interest may follow different transition criteria. The function returns the operation type required for the given installment state, or no operation when the conditions for a transition are not met. It only decides the transition; the caller performs the actual account movement.
 
 **Signature**
 
@@ -3068,8 +3083,9 @@ Procedure do_journal_entry(p_entries_list  g_entries_list_tab,
 
 **Description**
 
-Builds accounting journal entries for a configured loan operation and transaction. It resolves the operation definition from `LOAN_OPERATION_DESC`, selects the applicable voucher configuration in `LOAN_OPERATION_VOUCHER` and uses the associated query or mapping to assemble journal data. Missing, duplicate or invalid voucher configuration prevents reliable entry generation.
+Constructs journal-entry data for a requested loan operation and transaction. It first resolves the operation definition from `LOAN_OPERATION_DESC`, then selects the associated voucher configuration and query rules from `LOAN_OPERATION_VOUCHER`. These settings determine the accounting fields, grouping and value expressions needed for the selected operation.
 
+The voucher query results are collected and transformed into the debit/credit entry structure used by journal processing, including grouping where the configured result contains multiple rows. The procedure checks the required configuration rather than silently creating partial entries when a mapping is missing or ambiguous. The transaction type determines how the resulting journal operation is handled.
 
 **Signature**
 
