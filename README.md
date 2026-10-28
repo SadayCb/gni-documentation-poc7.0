@@ -4,8 +4,6 @@
 
 > A structured reference for developers who maintain, integrate, troubleshoot and extend the shared `GAIA.LOAN_API` package. This documentation is a **reviewable proof of concept**, not an approved operational runbook.
 
-[**Documentation Home**](docs/index.md) · [**API Reference**](docs/api.md) · [**Workflows**](docs/workflows.md) · [**Error Handling**](docs/error-handling.md)
-
 ---
 
 ## Overview
@@ -35,7 +33,6 @@ It is not a single-screen controller. Multiple banking operations and supporting
 | [Data Model](docs/data-model.md) | Review important loan tables, verified access types, and method relationships |
 | [Dependencies](docs/dependencies.md) | Find relevant packages, integration calls and configuration dependencies |
 | [Error Handling](docs/error-handling.md) | Understand selected application validation, configuration and processing failures |
-| [Documentation Home](docs/index.md) | Start with the package overview and navigate by functional area |
 
 ## Functional map
 
