@@ -34,22 +34,6 @@ It is not a single-screen controller. Multiple banking operations and supporting
 | [API Reference](docs/api.md) | Find public methods, exact signatures, parameters, business logic, rules and errors |
 | [Error Handling](docs/error-handling.md) | Understand selected application validation, configuration and processing failures |
 
-## Functional map
-
-The API is organized into **nine navigation domains**. These categories organize the reference; they are not separate independent modules.
-
-| Functional domain | Business responsibility |
-|---|---|
-| [Loan operations and controls](docs/api.md#domain-loan-operations-and-controls) | Coordinates loan operations, validation and control activities |
-| [Accounts, guarantees and closure](docs/api.md#domain-accounts-guarantees-and-closure) | Supports loan-linked accounts, collateral or guarantee activities and closure |
-| [Payments and balances](docs/api.md#domain-payments-and-balances) | Handles payment allocation, due amounts and account balances |
-| [Payment schedules and dates](docs/api.md#domain-payment-schedules-and-dates) | Generates or adjusts schedules, payment dates and grace-period information |
-| [Interest, penalties and rates](docs/api.md#domain-interest-penalties-and-rates) | Supplies rate information and interest/penalty calculations or operations |
-| [Delinquency and status](docs/api.md#domain-delinquency-and-status) | Evaluates overdue dates and supports delinquency transitions |
-| [Limits, tranches and overdrafts](docs/api.md#domain-limits-tranches-and-overdrafts) | Evaluates credit limits and handles tranche and overdraft operations |
-| [Accounting and audit](docs/api.md#domain-accounting-and-audit) | Resolves accounting mappings and creates or checks journal postings |
-| [History, metadata and reversal](docs/api.md#domain-history-metadata-and-reversal) | Records operation metadata and history and supports reversing mapped changes |
-
 ## High-level architecture
 
 ```mermaid
@@ -69,6 +53,23 @@ flowchart TD
 *Conceptual capability map only — not a literal order of execution or a complete call graph.*
 
 The [Workflows page](docs/workflows.md) shows the earlier broad, cross-cutting diagrams for account creation, EOD/SOD processing and history/reversal.
+
+
+## Functional map
+
+The API is organized into **nine navigation domains**. These categories organize the reference; they are not separate independent modules.
+
+| Functional domain | Business responsibility |
+|---|---|
+| [Loan operations and controls](docs/api.md#domain-loan-operations-and-controls) | Coordinates loan operations, validation and control activities |
+| [Accounts, guarantees and closure](docs/api.md#domain-accounts-guarantees-and-closure) | Supports loan-linked accounts, collateral or guarantee activities and closure |
+| [Payments and balances](docs/api.md#domain-payments-and-balances) | Handles payment allocation, due amounts and account balances |
+| [Payment schedules and dates](docs/api.md#domain-payment-schedules-and-dates) | Generates or adjusts schedules, payment dates and grace-period information |
+| [Interest, penalties and rates](docs/api.md#domain-interest-penalties-and-rates) | Supplies rate information and interest/penalty calculations or operations |
+| [Delinquency and status](docs/api.md#domain-delinquency-and-status) | Evaluates overdue dates and supports delinquency transitions |
+| [Limits, tranches and overdrafts](docs/api.md#domain-limits-tranches-and-overdrafts) | Evaluates credit limits and handles tranche and overdraft operations |
+| [Accounting and audit](docs/api.md#domain-accounting-and-audit) | Resolves accounting mappings and creates or checks journal postings |
+| [History, metadata and reversal](docs/api.md#domain-history-metadata-and-reversal) | Records operation metadata and history and supports reversing mapped changes |
 
 
 ## Scope and review notes
