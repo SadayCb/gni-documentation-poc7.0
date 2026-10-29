@@ -1,59 +1,84 @@
-# LOAN_API — Technical Documentation
+# GNI Software | LOAN_API Technical Documentation
 
-`GAIA.LOAN_API` is a public Oracle PL/SQL loan-services package for banking development and technical integration teams.
+**Enterprise loan services · Oracle PL/SQL · Source-based technical reference**
+
+> A structured reference for developers who maintain, integrate, troubleshoot and extend the shared `GAIA.LOAN_API` package. This documentation is a **reviewable proof of concept**, not an approved operational runbook.
+
+---
 
 ## Overview
 
-`LOAN_API` provides shared functions and procedures for loan accounts, payments, repayment schedules, interest and overdue processing, accounting entries, and transaction history. The package exposes reusable operations rather than a single page-specific controller.
+`GAIA.LOAN_API` is a shared banking service package that exposes procedures and functions for loan operations, accounts, payment allocation, repayment plans, interest and penalty calculations, overdue handling, credit limits, accounting journals, and transaction history.
 
-Its implementation interacts with loan master data, financial accounts, repayment plans, configuration tables and internal service packages. Review API-specific rules and transaction effects before calling methods that modify banking records.
+It is not a single-screen controller. Multiple banking operations and supporting processes can use its public interfaces. The **Package Specification** defines the public contract; the **Package Body** is the primary source for verified business behavior and database effects.
 
-## Documentation at a glance
+### Package at a glance
 
-| Document | What you will find |
+| Item | Description |
 |---|---|
-| [API Reference](api.md) | Public procedures/functions, business logic and rules |
-| [Workflows](workflows.md) | Verified processing paths and diagrams |
-| [Data Model](data-model.md) | Referenced data objects and observed access |
-| [Dependencies](dependencies.md) | Direct package and integration calls |
-| [Error Handling](error-handling.md) | Significant source-visible failure conditions |
+| Package | `GAIA.LOAN_API` |
+| Technology | Oracle Database / PL/SQL |
+| Public API | **89 declarations:** 45 procedures and 44 functions (overloads counted separately) |
+| Scope | Shared loan business operations and supporting services |
+| Source of truth | Supplied Package Specification and Package Body |
+| Audience | GNI Software developers, reviewers, and customer technical teams |
+| Documentation status | Draft / Proof of Concept — further business-rule review required |
 
-## Functional areas
+## Documentation guide
 
-| Functional area | Responsibility | APIs |
-|---|---|---|
-| [Loan operations and controls](api.md#domain-loan-operations-and-controls) | Coordinates loan operations, validation, and operational control checks. | [Browse APIs](api.md#domain-loan-operations-and-controls) |
-| [Accounts, guarantees and closure](api.md#domain-accounts-guarantees-and-closure) | Manages loan-linked accounts, guarantees, collateral release, and closure activities. | [Browse APIs](api.md#domain-accounts-guarantees-and-closure) |
-| [Payments and balances](api.md#domain-payments-and-balances) | Allocates and evaluates loan payments, plan amounts, and outstanding amounts. | [Browse APIs](api.md#domain-payments-and-balances) |
-| [Payment schedules and dates](api.md#domain-payment-schedules-and-dates) | Produces and adjusts repayment schedules, installment dates, and grace-period information. | [Browse APIs](api.md#domain-payment-schedules-and-dates) |
-| [Interest, penalties and rates](api.md#domain-interest-penalties-and-rates) | Calculates or retrieves interest, penalty bases, rates, and recognition information. | [Browse APIs](api.md#domain-interest-penalties-and-rates) |
-| [Delinquency and status](api.md#domain-delinquency-and-status) | Determines overdue transitions, overdue dates, and related overdue processing. | [Browse APIs](api.md#domain-delinquency-and-status) |
-| [Limits, tranches and overdrafts](api.md#domain-limits-tranches-and-overdrafts) | Evaluates credit limits, creates tranches, and processes overdraft contracts. | [Browse APIs](api.md#domain-limits-tranches-and-overdrafts) |
-| [Accounting and audit](api.md#domain-accounting-and-audit) | Creates accounting postings and retrieves accounting mappings and journal information. | [Browse APIs](api.md#domain-accounting-and-audit) |
-| [History, metadata and reversal](api.md#domain-history-metadata-and-reversal) | Captures transaction metadata and loan operation history, and supports reversal of recorded changes. | [Browse APIs](api.md#domain-history-metadata-and-reversal) |
+| Document | Why open it |
+|---|---|
+| [Workflows](docs/workflows.md) | Understand the package's major capabilities through high-level visual diagrams |
+| [Data Model](docs/data-model.md) | Review important loan tables, verified access types, and method relationships |
+| [Dependencies](docs/dependencies.md) | Find relevant packages, integration calls and configuration dependencies |
+| [API Reference](docs/api.md) | Find public methods, exact signatures, parameters, business logic, rules and errors |
+| [Error Handling](docs/error-handling.md) | Understand selected application validation, configuration and processing failures |
 
-## High-level workflow preview
-
-The package spans several related loan capabilities rather than one fixed lifecycle. This diagram is a **conceptual capability overview**, not a prescribed execution order.
+## High-level architecture
 
 ```mermaid
 flowchart TD
-    A[APEX modules and processing jobs] --> B[GAIA.LOAN_API]
-    B --> C[Accounts and loan operations]
-    B --> D[Payments and schedules]
-    B --> E[Interest and overdue processing]
-    B --> F[Accounting and transaction history]
-    C --> G[(Loan data)]
-    D --> G
-    E --> G
-    F --> G
+  A[APEX modules and other callers] --> API[GAIA.LOAN_API]
+  B[EOD / SOD processing] --> API
+  API --> C[Loan operations and accounts]
+  API --> D[Payments and schedules]
+  API --> E[Interest and overdue processing]
+  API --> F[Accounting and history]
+  C --> DB[(Loan and banking data)]
+  D --> DB
+  E --> DB
+  F --> DB
 ```
 
-[Explore cross-cutting workflows](workflows.md)
+*Conceptual capability map only — not a literal order of execution or a complete call graph.*
 
-## Key integration notes
+The [Workflows page](docs/workflows.md) shows the earlier broad, cross-cutting diagrams for account creation, EOD/SOD processing and history/reversal.
 
-- Accounting adjustments may call journal posting and history services; review [Dependencies](dependencies.md).
-- Several methods are phase/date sensitive and accept EOD/SOD, transaction IDs, loan identifiers or branch ranges.
-- Some implementations issue `COMMIT` explicitly; review transaction behavior in the [API Reference](api.md).
-- Source-observed tables and joins are not proof of database foreign-key constraints; see [Data Model](data-model.md).
+
+## Functional map
+
+The API is organized into **nine navigation domains**. These categories organize the reference; they are not separate independent modules.
+
+| Functional domain | Business responsibility |
+|---|---|
+| [Loan operations and controls](docs/api.md#domain-loan-operations-and-controls) | Coordinates loan operations, validation and control activities |
+| [Accounts, guarantees and closure](docs/api.md#domain-accounts-guarantees-and-closure) | Supports loan-linked accounts, collateral or guarantee activities and closure |
+| [Payments and balances](docs/api.md#domain-payments-and-balances) | Handles payment allocation, due amounts and account balances |
+| [Payment schedules and dates](docs/api.md#domain-payment-schedules-and-dates) | Generates or adjusts schedules, payment dates and grace-period information |
+| [Interest, penalties and rates](docs/api.md#domain-interest-penalties-and-rates) | Supplies rate information and interest/penalty calculations or operations |
+| [Delinquency and status](docs/api.md#domain-delinquency-and-status) | Evaluates overdue dates and supports delinquency transitions |
+| [Limits, tranches and overdrafts](docs/api.md#domain-limits-tranches-and-overdrafts) | Evaluates credit limits and handles tranche and overdraft operations |
+| [Accounting and audit](docs/api.md#domain-accounting-and-audit) | Resolves accounting mappings and creates or checks journal postings |
+| [History, metadata and reversal](docs/api.md#domain-history-metadata-and-reversal) | Records operation metadata and history and supports reversing mapped changes |
+
+
+## Scope and review notes
+
+- Public API inventory is derived from active declarations in the supplied specification; commented-out declarations are excluded.
+- Business explanations are based on the provided implementation, but **not every method has completed manual semantic review**.
+- Workflow diagrams are intentionally general and should not be mistaken for scheduling requirements.
+- Before customer publication, validate business rules, sensitive implementation details and transaction boundaries with the responsible maintainers.
+
+---
+
+**GNI Software — LOAN_API Documentation** · [Browse the full API](docs/api.md) · [Return to documentation home](docs/index.md)
